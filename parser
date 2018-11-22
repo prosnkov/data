@@ -1,9 +1,15 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #parsing data from EXFOR database at cdfe.sinp.msu.ru, Nov 2018
+from __future__ import unicode_literals
 import requests
 import re
 import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+mpl.rc('text', usetex=True)
+mpl.rcdefaults()
+mpl.font = mpl.font_manager.FontProperties(fname="/usr/share/matplotlib/mpl-data/fonts/ttf/cmb10.ttf")
 
 r = requests.get('http://cdfe.sinp.msu.ru/cgi-bin/exf2htm?LINK=M0744007&SOURCE=ON')
 lines = r.text.split('\n')
@@ -27,7 +33,22 @@ energy = np.float64(np.delete(table,[1,2],1)).ravel()
 xs = np.float64(np.delete(table,[0,2],1)).ravel()
 err = np.float64(np.delete(table,[0,1],1)).ravel()
 
+#make a table with experimantal data
 f0 = open('experiment','w')
 for i in range(len(energy)):
 	f0.write(str(energy[i]) + '\t' + str(xs[i]) + '\t' + str(err[i]) + '\n')
 f0.close()
+
+#make a plot with experimental data
+fig = plt.figure()
+fig.set_rasterized(False)
+plt.scatter(energy,xs,c='k',label='Experimantal data')
+plt.errorbar(energy, xs, yerr=err, ls='none',c='k') 
+plt.tight_layout()
+plt.legend()
+plt.xlabel('$E_{\gamma}$, МэВ')
+plt.ylabel('$\sigma$, мб')
+default_size = fig.get_size_inches() 
+fig.set_size_inches(default_size[0]*1.5, default_size[1]*1.5,forward=True)
+plt.savefig('experiment.eps',fmt='eps',rasterized=False)
+
