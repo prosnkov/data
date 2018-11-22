@@ -1,0 +1,114 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# Plotting cross sections from talys (Nov 2018)
+from __future__ import unicode_literals
+import os 
+import subprocess
+import numpy as np
+import scipy.interpolate as interpolate
+import scipy.integrate as integrate
+import shutil
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+mpl.rc('text', usetex=True)
+mpl.rcdefaults()
+mpl.font = mpl.font_manager.FontProperties(fname="/usr/share/matplotlib/mpl-data/fonts/ttf/cmb10.ttf")
+import matplotlib.gridspec as gridspec
+
+
+d=os.getcwd() 
+os.chdir(d)
+
+element=46
+mass=np.array([102,104])
+MaxR=4
+
+xs={}
+f={}
+y={}
+
+f1 = open('table','w')
+for i in range(len(mass)):
+	xs[i]={}
+	y[i]={}
+	f[i]={}
+	os.mkdir(str(mass[i]))
+	os.chdir(str(mass[i]))
+	
+	#Make input file for talys. dE=1 for faster computation
+	
+	f0 = open('input','w')
+	f0.write('projectile g'+'\n')
+	f0.write('element '+str(element)+'\n')
+	f0.write('mass '+str(mass[i])+'\n')
+	f0.write('energy 1 55 1'+'\n')
+	f0.write('ejectiles n p'+'\n')
+	f0.close()
+	subprocess.call("talys<input>output", shell=True)
+	E = np.float64(open('energies').readlines())
+
+	#making arrays of cross sections
+
+	for j in range(MaxR):
+		if j<3:
+			if os.path.isfile('rp0'+str(element)+str(mass[i]-j-1)+'.tot'):
+				lines = open('rp0'+str(element)+str(mass[i]-j-1)+'.tot').readlines()			
+			if os.path.isfile('rp0'+str(element)+'0'+str(mass[i]-j-1)+'.tot'):
+				lines = open('rp0'+str(element)+'0'+str(mass[i]-j-1)+'.tot').readlines()
+			for s in range(5):
+				del lines[0]
+			table = np.array([row.split() for row in lines])
+			xs[i][j] = np.float64(np.delete(table,0,1))
+		else:
+			lines = open('rp0'+str(element-1)+str(mass[i]-1)+'.tot').readlines()
+			for s in range(5):
+				del lines[0]
+			table = np.array([row.split() for row in lines])
+			xs[i][j] = np.float64(np.delete(table,0,1))
+
+		#interpolating cross sections from dE=1 to dE=0.1
+
+		dE = 0.1
+		x = np.arange(E[0], E[-1], dE)
+		f[i][j] = interpolate.InterpolatedUnivariateSpline(E, xs[i][j])
+		y[i][j] = f[i][j](x)
+
+		f1.write(str(mass[i])+'\t'+str(x[y[i][j].argmax()])+'\t'+str(max(y[i][j]))+'\t'+str(integrate.simps(y[i][j],x))+'\n')
+	os.chdir('..')
+f1.close()
+
+#Plotting cross sections in a grid 3x2
+
+fig1 = plt.figure()
+fig1.set_rasterized(False)
+ax1 = plt.subplot2grid((3,2), (0, 0))
+ax2 = plt.subplot2grid((3,2), (1, 0))
+ax3 = plt.subplot2grid((3,2), (2, 0))
+ax4 = plt.subplot2grid((3,2), (0, 1))
+ax5 = plt.subplot2grid((3,2), (1, 1))
+ax6 = plt.subplot2grid((3,2), (2, 1))
+ax1.plot(x,y[0][0]+2*y[0][1]+3*y[0][2],c='k',linewidth=2,label='$^{102}Pd(\gamma,Xn)$')
+ax2.plot(x,y[0][0],c='k',linewidth=2,label='$^{102}Pd(\gamma,1n)$')
+ax2.plot(x,y[0][1]*3,'--',c='k',linewidth=2,label='$^{102}Pd(\gamma,2n) \cdot 3$')
+ax2.plot(x,y[0][2]*10,'-.',c='k',linewidth=2,label='$^{102}Pd(\gamma,3n) \cdot 10$')
+ax3.plot(x,y[0][3],c='k',linewidth=2,label='$^{102}Pd(\gamma,p)$')
+ax4.plot(x,y[1][0]+2*y[1][1]+3*y[1][2],c='k',linewidth=2,label='$^{104}Pd(\gamma,Xn)$')
+ax5.plot(x,y[1][0],c='k',linewidth=2,label='$^{104}Pd(\gamma,1n)$')
+ax5.plot(x,y[1][1]*3,'--',c='k',linewidth=2,label='$^{104}Pd(\gamma,2n) \cdot 3$')
+ax5.plot(x,y[1][2]*10,'-.',c='k',linewidth=2,label='$^{104}Pd(\gamma,3n) \cdot 10$')
+ax6.plot(x,y[1][3],c='k',linewidth=2,label='$^{104}Pd(\gamma,p)$')
+plt.tight_layout()
+#plt.tight_layout(h_pad=2,w_pad=0,pad=2)
+for i, ax in enumerate(fig1.axes):
+	ax.set_rasterized(False)
+	ax.legend()
+	ax.set_rasterized(False)
+	ax.set_ylim(0,)
+	ax.set_xlim(5,)
+ax3.set_xlabel('$E_{\gamma}$, МэВ')
+ax6.set_xlabel('$E_{\gamma}$, МэВ')
+ax2.set_ylabel('$\sigma$, мб')
+default_size = fig1.get_size_inches() 
+fig1.set_size_inches(default_size[0]*1.5, default_size[1]*1.5,forward=True)
+plt.savefig('pd.png',fmt='png',rasterized=False)
+plt.show()
