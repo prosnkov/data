@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-#Different mini programs for my science work
+#My module with some mini programs for my science work
 from __future__ import unicode_literals
 import os 
 import subprocess
