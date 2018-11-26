@@ -7,6 +7,7 @@ import subprocess
 import numpy as np
 import requests
 import re
+import math
 import scipy.interpolate as interpolate
 import scipy.integrate as integrate
 import shutil
@@ -15,7 +16,6 @@ import matplotlib.pyplot as plt
 mpl.rc('text', usetex=True)
 mpl.rcdefaults()
 mpl.font = mpl.font_manager.FontProperties(fname="/usr/share/matplotlib/mpl-data/fonts/ttf/cmb10.ttf")
-import matplotlib.gridspec as gridspec
 
 #initialise talys, added Apr 2017
 def talys_init(element, mass, Emin, Emax, dE):
@@ -93,12 +93,15 @@ def parse(link,param):
 		return err
 
 
-#make a plot, added Nov 2018
-def plot_exp(x,y,err,col,mar,lab,name,param):
+#make one plot, added Nov 2018
+def plot(x,y,err,lab,name,param):
 	fig = plt.figure()
 	fig.set_rasterized(False)
-	plt.scatter(x,y,c=col,marker=mar,label=lab)
-	plt.errorbar(x, y, yerr=err, ls='none',c=col) 
+	if param == 'exp':
+		plt.scatter(x,y,c='k',s=20,marker='o',label=lab)
+		plt.errorbar(x, y, yerr=err, ls='none',c='k',elinewidth=1) 
+	if param == 'th':
+		plt.plot(x,y,c='k',linewidth=2,label=lab)
 	plt.tight_layout()
 	plt.legend()
 	plt.xlabel('$E_{\gamma}$, МэВ')
@@ -107,26 +110,5 @@ def plot_exp(x,y,err,col,mar,lab,name,param):
 	plt.ylim(0,)
 	default_size = fig.get_size_inches() 
 	fig.set_size_inches(default_size[0]*1.5, default_size[1]*1.5,forward=True)
-	if param == 1:
-		plt.savefig(name+'.eps',fmt='eps',rasterized=False)
-		return fig
-	else:
-		return fig
-def plot_th(x,y,st,col,ln,lab,name,param):
-	fig = plt.figure()
-	fig.set_rasterized(False)
-	plt.plot(x,y,st,c=col,linewidth=ln,label=lab)
-	plt.tight_layout()
-	plt.legend()
-	plt.xlabel('$E_{\gamma}$, МэВ')
-	plt.ylabel('$\sigma$, мб')
-	plt.xlim(0,)
-	plt.ylim(0,)
-	default_size = fig.get_size_inches() 
-	fig.set_size_inches(default_size[0]*1.5, default_size[1]*1.5,forward=True)
-	if param == 1:
-		plt.savefig(name+'.eps',fmt='eps',rasterized=False)
-		return fig
-	else:
-		return fig
-
+	plt.savefig(name+'.eps',fmt='eps',rasterized=False)
+	return fig
