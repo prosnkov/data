@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #My module with some mini programs for my science work
-#Upd: 27.11.2018
+#Upd: 29.11.2018
 from __future__ import unicode_literals
 import os 
 import subprocess
@@ -116,6 +116,26 @@ def exfor(link):
 	err = np.float64(np.delete(table,[0,1],1)).ravel()
 	result = namedtuple('arrays', ['x','y','err'])
 	return result(x,y,err)
+#similar to exfor, added Nov 2018
+def endf(link):
+	r = requests.get(link)
+	lines = r.text.split('\n')
+	i=0
+	for line in lines:
+		if line.startswith('#E,eV        Sig,b        ') == True:
+			break
+		i=i+1
+	arr = r.text.split('\n')[i+1:-2]
+	arr = [re.sub(r'\s+', r' ', elem.lstrip().rstrip()).split() for elem in arr]
+	table = []
+	for elem in arr:
+		table.append(elem[:2])
+	x = np.float64(np.delete(table,1,1)).ravel()
+	y = np.float64(np.delete(table,0,1)).ravel()
+	x = np.multiply(x,math.pow(10,-6))
+	y = np.multiply(y,math.pow(10,3))
+	result = namedtuple('arrays', ['x','y'])
+	return result(x,y)
 
 
 #make one plot, added Nov 2018
