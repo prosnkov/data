@@ -89,12 +89,12 @@ def interp_arr(x, y, x_new):
 	y = f(x_new)
 	return y
 
-#parsing data from EXFOR database at cdfe.sinp.msu.ru, added Nov 2018
+#parsing data from CDFE database at cdfe.sinp.msu.ru, added Nov 2018
 # example:
-#	E=sinp.exfor(link).x
-#	xs=sinp.exfor(link).y
-#	err=sinp.exfor(link).err
-def exfor(link):
+#	E=sinp.cdfe(link).x
+#	xs=sinp.cdfe(link).y
+#	err=sinp.cdfe(link).err
+def cdfe(link):
 	r = requests.get(link)
 	lines = r.text.split('\n')
 	i=0
@@ -116,7 +116,7 @@ def exfor(link):
 	err = np.float64(np.delete(table,[0,1],1)).ravel()
 	result = namedtuple('arrays', ['x','y','err'])
 	return result(x,y,err)
-#similar to exfor, added Nov 2018
+#similar to cdfe, added Nov 2018
 def endf(link):
 	r = requests.get(link)
 	lines = r.text.split('\n')
