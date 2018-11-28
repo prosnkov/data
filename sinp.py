@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #My module with some mini programs for my science work
+#Version: 0.2.4
 #Upd: 29.11.2018
 from __future__ import unicode_literals
 import os 
@@ -18,6 +19,7 @@ mpl.rc('text', usetex=True)
 mpl.rcdefaults()
 mpl.font = mpl.font_manager.FontProperties(fname="/usr/share/matplotlib/mpl-data/fonts/ttf/cmb10.ttf")
 
+#array of periodic table names
 nucl=['neut','H','He','Li','Be','B','C','N','O','F','Ne','Na', \
 	'Mg','Al','Si','P','S','Cl','Ar','K','Ca','Sc','Ti', \
 	'V','Cr','Mn','Fe','Co','Ni','Cu','Zn','Ga','Ge', \
@@ -75,15 +77,15 @@ def xs_talys(element, mass, prot, neut):
 #example:
 #	E_int=sinp.interp_val(E,xs,dE=0.001).x
 #	xs_int=sinp.interp_val(E,xs,dE=0.001).y
-#interp_arr must be used for changing array of energies
-#example:
-#	xs_int=sinp.interp_arr(E,xs,E_int)
 def interp_val(arr_x, arr_y, dE=0.01):
 	x = np.arange(arr_x[0], arr_x[-1]+dE, dE)
 	f = interpolate.InterpolatedUnivariateSpline(arr_x, arr_y)
 	y = f(x)
 	result = namedtuple('arrays', ['x','y'])
 	return result(x,y)
+#interp_arr must be used for changing array of energies
+#example:
+#	xs_int=sinp.interp_arr(E,xs,E_int)
 def interp_arr(x, y, x_new):
 	f = interpolate.InterpolatedUnivariateSpline(x, y)
 	y = f(x_new)
@@ -116,7 +118,9 @@ def cdfe(link):
 	err = np.float64(np.delete(table,[0,1],1)).ravel()
 	result = namedtuple('arrays', ['x','y','err'])
 	return result(x,y,err)
-#similar to cdfe, added Nov 2018
+#parsing data from ENDF database at nndc.bnl.gov, added Nov 2018
+#	E=sinp.endf(link).x
+#	xs=sinp.endf(link).y
 def endf(link):
 	r = requests.get(link)
 	lines = r.text.split('\n')
@@ -137,6 +141,39 @@ def endf(link):
 	result = namedtuple('arrays', ['x','y'])
 	return result(x,y)
 
+#parsing data from non-smoker database at nucastro.org, added Nov 2018
+#example:
+#	E=sinp.nonsmok(Z,A,'p').x
+#	xs=sinp.nonsmok(Z,A,'p').y
+#param = 'n', 'p', 'a'
+def nonsmok(element,mass,param='n'):
+	x=[]
+	y=[]
+	if param == 'n':
+		link = 'http://download.nucastro.org/astro/photon/table1.asc'
+	if param == 'p':
+		link = 'http://download.nucastro.org/astro/photon/table2.asc'
+	if param == 'a':
+		link = 'http://download.nucastro.org/astro/photon/table3.asc'
+	r = requests.get(link)
+	lines = r.text.split('\n')
+	i=0
+	for line in lines:
+		if line.startswith(nucl[element].lower()+str(mass)+'  ') == True or line.startswith(' '+nucl[element].lower()+str(mass)+'  ') == True:
+			break
+		i=i+1
+	arr = r.text.split('\n')[i+1:i+20]
+	arr = [re.sub(r'\s+', r' ', elem.lstrip().rstrip()).split() for elem in arr]
+	for line in arr:
+		for i in range(len(line)):
+			if i % 2 == 0:
+				x.append(line[i])
+			else:
+				y.append(line[i])
+	x = np.multiply(np.float64(x),math.pow(10,-3))
+	y = np.multiply(np.float64(y),math.pow(10,3))
+	result = namedtuple('arrays', ['x','y'])
+	return result(x,y)
 
 #make one plot, added Nov 2018
 #Can be used for plotting cross sections
