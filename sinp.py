@@ -33,7 +33,7 @@ nucl=['neut','H','He','Li','Be','B','C','N','O','F','Ne','Na', \
 	'Bh','Hs','Mt','Ds','Rg','Cn','Nh','Fl','Mc','Lv','Ts','Og']
 
 #initialise talys, added Apr 2017
-# example:
+#example:
 #	talys_init(Z,A,Emin=5,Emax=40,dE=0.5)
 def talys_init(element, mass, Emin=1, Emax=55, dE=1):
 #	d=os.getcwd() 
@@ -56,10 +56,10 @@ def talys_init(element, mass, Emin=1, Emax=55, dE=1):
 #mass - mass number
 #prot - quantity of emitted protons
 #neut - quantity of emitter neutrons
-# example:
-#	E=sinp.xs_talys(Z,A,0,1).x
-#	xs=sinp.xs_talys(Z,A,0,1).y
-def xs_talys(element, mass, prot, neut):
+#example:
+#	E=sinp.xstal(Z,A,0,1).x
+#	xs=sinp.xstal(Z,A,0,1).y
+def xstal(element, mass, prot, neut):
 	if os.path.isfile('rp0'+str(element-prot)+str(mass-neut-prot)+'.tot'):
 		lines = open('rp0'+str(element-prot)+str(mass-neut-prot)+'.tot').readlines()			
 	if os.path.isfile('rp0'+str(element-prot)+'0'+str(mass-neut-prot)+'.tot'):
@@ -73,26 +73,26 @@ def xs_talys(element, mass, prot, neut):
 	return result(x,y)
 
 #interpolate data, added Apr 2018
-#interp_val must be used for changing dE with the same boundaries
+#interpval must be used for changing dE with the same boundaries
 #example:
-#	E_int=sinp.interp_val(E,xs,dE=0.001).x
-#	xs_int=sinp.interp_val(E,xs,dE=0.001).y
-def interp_val(arr_x, arr_y, dE=0.01):
+#	E_int=sinp.interpval(E,xs,dE=0.001).x
+#	xs_int=sinp.interpval(E,xs,dE=0.001).y
+def interpval(arr_x, arr_y, dE=0.01):
 	x = np.arange(arr_x[0], arr_x[-1]+dE, dE)
 	f = interpolate.InterpolatedUnivariateSpline(arr_x, arr_y)
 	y = f(x)
 	result = namedtuple('arrays', ['x','y'])
 	return result(x,y)
-#interp_arr must be used for changing array of energies
+#interparr must be used for changing array of energies
 #example:
-#	xs_int=sinp.interp_arr(E,xs,E_int)
-def interp_arr(x, y, x_new):
+#	xs_int=sinp.interparr(E,xs,E_int)
+def interparr(x, y, x_new):
 	f = interpolate.InterpolatedUnivariateSpline(x, y)
 	y = f(x_new)
 	return y
 
 #parsing data from CDFE database at cdfe.sinp.msu.ru, added Nov 2018
-# example:
+#example:
 #	E=sinp.cdfe(link).x
 #	xs=sinp.cdfe(link).y
 #	err=sinp.cdfe(link).err
@@ -140,7 +140,6 @@ def endf(link):
 	y = np.multiply(y,math.pow(10,3))
 	result = namedtuple('arrays', ['x','y'])
 	return result(x,y)
-
 #parsing data from non-smoker database at nucastro.org, added Nov 2018
 #example:
 #	E=sinp.nonsmok(Z,A,'p').x
