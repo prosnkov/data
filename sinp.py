@@ -134,10 +134,8 @@ def endf(link):
 	table = []
 	for elem in arr:
 		table.append(elem[:2])
-	x = np.float64(np.delete(table,1,1)).ravel()
-	y = np.float64(np.delete(table,0,1)).ravel()
-	x = np.multiply(x,math.pow(10,-6))
-	y = np.multiply(y,math.pow(10,3))
+	x = np.multiply(np.float64(np.delete(table,1,1)).ravel(),math.pow(10,-6))
+	y = np.multiply(np.float64(np.delete(table,0,1)).ravel(),math.pow(10,3))
 	result = namedtuple('arrays', ['x','y'])
 	return result(x,y)
 #parsing data from non-smoker database at nucastro.org, added Nov 2018
