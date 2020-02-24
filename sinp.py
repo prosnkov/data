@@ -156,8 +156,8 @@ def xsor(prot, neut):
 	k = np.intc(np.delete(table,[1,2,3,4],1)).ravel()
 	sec = np.float64(np.delete(table,[0,2,3,4],1)).ravel()
 	energ = np.float64(np.delete(table,[0,1,3,4],1)).ravel()
-	p = np.float64(np.delete(table,[0,1,2,4],1)).ravel()
-	n = np.float64(np.delete(table,[0,1,2,3],1)).ravel()
+	p = np.intc(np.delete(table,[0,1,2,4],1)).ravel()
+	n = np.intc(np.delete(table,[0,1,2,3],1)).ravel()
 	for i in range(len(k)):
 		if p[i]==prot and n[i]==neut:
 			break
