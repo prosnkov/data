@@ -1,17 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #My module with some mini programs for my science work
-#Version: 0.3.3
-#Upd: 24.02.2020
+#Version: 0.3.8
+#Upd: 25.02.2020
 from __future__ import unicode_literals
-import os 
-import subprocess
 import numpy as np
 import requests
 import re
 import math
-import scipy.interpolate as interpolate
-import scipy.integrate as integrate
 from collections import namedtuple
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -33,25 +29,6 @@ nucl=['neut','H','He','Li','Be','B','C','N','O','F','Ne','Na', \
 	'Bk','Cf','Es','Fm','Md','No','Lr','Rf','Db','Sg', \
 	'Bh','Hs','Mt','Ds','Rg','Cn','Nh','Fl','Mc','Lv','Ts','Og']
 
-#initialise talys, added Apr 2017
-#example:
-#	talys_init(Z,A,Emin=5,Emax=40,dE=0.5)
-def talys_init(element, mass, Emin=1, Emax=55, dE=1):
-#	d=os.getcwd() 
-#	os.chdir(d)
-#	os.mkdir(str(mass))
-#	os.chdir(str(mass))
-	f0 = open('input','w')
-	f0.write('projectile g'+'\n')
-	f0.write('element '+str(element)+'\n')
-	f0.write('mass '+str(mass)+'\n')
-	f0.write('energy '+str(Emin)+' '+str(Emax)+' '+str(dE)+'\n')
-	f0.write('ejectiles n p'+'\n')
-	f0.close()
-	subprocess.call("talys<input>output", shell=True)
-#	os.chdir('..')
-	return 0
-
 #take cross sections from talys, added Mar 2018
 #element - charge number
 #mass - mass number
@@ -72,25 +49,6 @@ def xstal(element, mass, prot, neut):
 	y = np.float64(np.delete(table,0,1))
 	result = namedtuple('arrays', ['x','y'])
 	return result(x,y)
-
-#interpolate data, added Apr 2018
-#interpval must be used for changing dE with the same boundaries
-#example:
-#	E_int=sinp.interpval(E,xs,dE=0.001).x
-#	xs_int=sinp.interpval(E,xs,dE=0.001).y
-def interpval(arr_x, arr_y, dE=0.01):
-	x = np.arange(arr_x[0], arr_x[-1]+dE, dE)
-	f = interpolate.InterpolatedUnivariateSpline(arr_x, arr_y)
-	y = f(x)
-	result = namedtuple('arrays', ['x','y'])
-	return result(x,y)
-#interparr must be used for changing array of energies
-#example:
-#	xs_int=sinp.interparr(E,xs,E_int)
-def interparr(x, y, x_new):
-	f = interpolate.InterpolatedUnivariateSpline(x, y)
-	y = f(x_new)
-	return y
 
 #parsing data from CDFE database at cdfe.sinp.msu.ru, added Nov 2018
 #example:
@@ -119,6 +77,7 @@ def cdfe(link):
 	err = np.float64(np.delete(table,[0,1],1)).ravel()
 	result = namedtuple('arrays', ['x','y','err'])
 	return result(x,y,err)
+
 #parsing data from ENDF database at nndc.bnl.gov, added Nov 2018
 #	E=sinp.endf(link).x
 #	xs=sinp.endf(link).y
@@ -139,6 +98,7 @@ def endf(link):
 	y = np.multiply(np.float64(np.delete(table,0,1)).ravel(),math.pow(10,3))
 	result = namedtuple('arrays', ['x','y'])
 	return result(x,y)
+
 #parsing data from non-smoker database at nucastro.org, added Nov 2018
 #example:
 #	E=sinp.nonsmok(Z,A,'p').x
@@ -269,7 +229,7 @@ def spor(param,E):
 #Can be used for plotting cross sections
 #Beta version
 #if there is no error data, use err=0
-def plot(x,y,err,param,name,lab,xlab='$E$, МэВ',ylab='$\sigma$, мб'):
+def plot(param,lab,name,x,y,err,xlab='$E$, МэВ',ylab='$\sigma$, мб'):
 	fig = plt.figure()
 	fig.set_rasterized(False)
 	if param == 'exp':
