@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #My module with some mini programs for my science work
-#Version: 0.3.8
+#Version: 0.3.5
 #Upd: 25.02.2020
 from __future__ import unicode_literals
 import numpy as np
@@ -190,10 +190,7 @@ def xsor(prot, neut):
 #	E=sinp.spor('p',25).Enuc
 #	xs=sinp.spor('p',25).spec
 def spor(param,E):
-	if param == 'n':
-		lines = open('nsp.dat').readlines()
-	if param == 'p':
-		lines = open('psp.dat').readlines()
+	lines = open(param+'sp.dat').readlines()
 	table = np.array([row.split() for row in lines])
 	Eg = np.float64(np.delete(table,[1,2,3,4,5,6],1)).ravel()
 	Enucf = np.float64(np.delete(table,[0,2,3,4,5,6],1)).ravel()
