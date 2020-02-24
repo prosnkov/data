@@ -269,7 +269,7 @@ def spor(param,E):
 #Can be used for plotting cross sections
 #Beta version
 #if there is no error data, use err=0
-def plot(x,y,err,lab,name,param):
+def plot(x,y,err,param,name,lab,xlab='$E$, МэВ',ylab='$\sigma$, мб'):
 	fig = plt.figure()
 	fig.set_rasterized(False)
 	if param == 'exp':
@@ -279,8 +279,8 @@ def plot(x,y,err,lab,name,param):
 		plt.plot(x,y,c='k',linewidth=2,label=lab)
 	plt.tight_layout()
 	plt.legend()
-	plt.xlabel('$E$, МэВ')
-	plt.ylabel('$\sigma$, мб')
+	plt.xlabel(xlab)
+	plt.ylabel(ylab)
 	plt.xlim(np.float64(x[0]),)
 	plt.ylim(0,)
 	default_size = fig.get_size_inches() 
