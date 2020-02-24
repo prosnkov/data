@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #My module with some mini programs for my science work
-#Version: 0.3.1
+#Version: 0.3.3
 #Upd: 24.02.2020
 from __future__ import unicode_literals
 import os 
@@ -188,12 +188,12 @@ def nonsmok(element,mass,param='n'):
 #ober - obertone component
 #deut - quasideutrone component
 #example:
-#	E=sinp.xsorlin(0,1).Eg
-#	xs=sinp.xsorlin(0,1).xsg
-def xsorlin(prot, neut):
+#	E=sinp.xsor(0,1).Eg
+#	xs=sinp.xsor(0,1).xsg
+def xsor(prot, neut):
 	lines = open('key').readlines()
 	table = np.array([row.split() for row in lines])
-	k = np.int16(np.delete(table,[1,2,3,4],1)).ravel()
+	k = np.intc(np.delete(table,[1,2,3,4],1)).ravel()
 	sec = np.float64(np.delete(table,[0,2,3,4],1)).ravel()
 	energ = np.float64(np.delete(table,[0,1,3,4],1)).ravel()
 	p = np.float64(np.delete(table,[0,1,2,4],1)).ravel()
@@ -205,15 +205,65 @@ def xsorlin(prot, neut):
 	Emax=energ[i]
 	lines = open('sct'+str(k[i])+'.dat').readlines()			
 	table = np.array([row.split() for row in lines])
-	Eg = np.float64(np.delete(table,[1,2,3,4,5,6],1))
-	xsg = np.float64(np.delete(table,[0,2,3,4,5,6],1))
-	T0 = np.float64(np.delete(table,[0,1,3,4,5,6],1))
-	T1 = np.float64(np.delete(table,[0,1,2,4,5,6],1))
-	quad = np.float64(np.delete(table,[0,1,2,3,5,6],1))
-	ober = np.float64(np.delete(table,[0,1,2,3,4,6],1))
-	deut = np.float64(np.delete(table,[0,1,2,3,4,5],1))
+	Eg = np.float64(np.delete(table,[1,2,3,4,5,6],1)).ravel()
+	xsg = np.float64(np.delete(table,[0,2,3,4,5,6],1)).ravel()
+	T0 = np.float64(np.delete(table,[0,1,3,4,5,6],1)).ravel()
+	T1 = np.float64(np.delete(table,[0,1,2,4,5,6],1)).ravel()
+	quad = np.float64(np.delete(table,[0,1,2,3,5,6],1)).ravel()
+	ober = np.float64(np.delete(table,[0,1,2,3,4,6],1)).ravel()
+	deut = np.float64(np.delete(table,[0,1,2,3,4,5],1)).ravel()
 	result = namedtuple('arrays', ['xsmax','Emax','Eg','xsg','T0','T1','quad','ober','deut'])
 	return result(xsmax,Emax,Eg,xsg,T0,T1,quad,ober,deut)
+
+#take spectra from CMPR(Orlin), added Feb 2020
+#inputs:
+#param - emitted particle. param = 'n' or param = 'p'
+#E - gamma energy
+#outputs:
+#Enuc - emitted particle energy
+#spec - full nucleon spectrum
+#gdr - GDR contribution to spectrum
+#ober - obertone contribution to spectrum
+#quad - quadrupole contribution to spectrum
+#deut - quasideutrone contribution to spectrum
+#example:
+#	E=sinp.spor('p',25).Enuc
+#	xs=sinp.spor('p',25).spec
+def spor(param,E):
+	if param == 'n':
+		lines = open('nsp.dat').readlines()
+	if param == 'p':
+		lines = open('psp.dat').readlines()
+	table = np.array([row.split() for row in lines])
+	Eg = np.float64(np.delete(table,[1,2,3,4,5,6],1)).ravel()
+	Enucf = np.float64(np.delete(table,[0,2,3,4,5,6],1)).ravel()
+	specf = np.float64(np.delete(table,[0,1,3,4,5,6],1)).ravel()
+	gdrf = np.float64(np.delete(table,[0,1,2,4,5,6],1)).ravel()
+	oberf = np.float64(np.delete(table,[0,1,2,3,5,6],1)).ravel()
+	quadf = np.float64(np.delete(table,[0,1,2,3,4,6],1)).ravel()
+	deutf = np.float64(np.delete(table,[0,1,2,3,4,5],1)).ravel()
+	j=0
+	for i in range(len(Eg)):
+		if Eg[i]==E:
+			j=j+1
+	Enuc=np.zeros(j)
+	spec=np.zeros(j)
+	gdr=np.zeros(j)
+	ober=np.zeros(j)
+	quad=np.zeros(j)
+	deut=np.zeros(j)
+	j=0
+	for i in range(len(Eg)):
+		if Eg[i]==E:
+			Enuc[j]=Enucf[i]
+			spec[j]=specf[i]
+			gdr[j]=specf[i]
+			ober[j]=oberf[i]
+			quad[j]=quadf[i]
+			deut[j]=deutf[i]
+			j=j+1
+	result = namedtuple('arrays', ['Enuc','spec','gdr','ober','quad','deut'])
+	return result(Enuc,spec,gdr,ober,quad,deut)
 
 #make one plot, added Nov 2018
 #Can be used for plotting cross sections
@@ -229,7 +279,7 @@ def plot(x,y,err,lab,name,param):
 		plt.plot(x,y,c='k',linewidth=2,label=lab)
 	plt.tight_layout()
 	plt.legend()
-	plt.xlabel('$E_{\gamma}$, МэВ')
+	plt.xlabel('$E$, МэВ')
 	plt.ylabel('$\sigma$, мб')
 	plt.xlim(np.float64(x[0]),)
 	plt.ylim(0,)
