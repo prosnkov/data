@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #My module with some mini programs for my science work
-#Version: 0.3.5
-#Upd: 25.02.2020
+#Version: 0.3.7
+#Upd: 27.02.2020
 from __future__ import unicode_literals
 import numpy as np
 import requests
@@ -60,7 +60,10 @@ def cdfe(link):
 	lines = r.text.split('\n')
 	i=0
 	for line in lines:
-		if line.startswith('MEV        MB         MB') == True:
+		if line.startswith('MEV        MB         MB') == True or \
+		line.startswith('MEV        MB') == True or \
+		line.startswith('MEV        B          B') == True or \
+		line.startswith('MEV        B') == True:
 			break
 		i=i+1
 	arr = r.text.split('\n')[i+1:-3]
@@ -236,8 +239,8 @@ def plot(param,lab,name,x,y,err,xlab='$E$, МэВ',ylab='$\sigma$, мб'):
 		plt.plot(x,y,c='k',linewidth=2,label=lab)
 	plt.tight_layout()
 	plt.legend()
-	plt.xlabel(xlab)
-	plt.ylabel(ylab)
+	plt.xlabel(xlab,fontsize=14)
+	plt.ylabel(ylab,fontsize=14)
 	plt.xlim(np.float64(x[0]),)
 	plt.ylim(0,)
 	default_size = fig.get_size_inches() 
