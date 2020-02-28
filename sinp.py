@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #My module with some mini programs for my science work
-#Version: 0.3.7
+#Version: 0.3.8
 #Upd: 27.02.2020
 from __future__ import unicode_literals
 import numpy as np
@@ -56,6 +56,8 @@ def xstal(element, mass, prot, neut):
 #	xs=sinp.cdfe(link).y
 #	err=sinp.cdfe(link).err
 def cdfe(link):
+	if link.endswith('&SOURCE=ON') == False:
+		link=link+'&SOURCE=ON'
 	r = requests.get(link)
 	lines = r.text.split('\n')
 	i=0
