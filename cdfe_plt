@@ -22,8 +22,6 @@ mpl.rcdefaults()
 mpl.font = mpl.font_manager.FontProperties(fname="/usr/share/matplotlib/mpl-data/fonts/ttf/cmb10.ttf")
 mpl.rc('figure', max_open_warning = 0)
 
-link=''
-
 def cdfe(link):
 	if link.endswith('&SOURCE=ON') == False:
 		link=link+'&SOURCE=ON'
