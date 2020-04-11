@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-#Program for plotting CDFE cross sections with Qt5 interface
-#Version: 0.2.1
+#Version: 0.2.2
 #Upd: 11.04.2020
 
 from __future__ import unicode_literals
@@ -96,7 +95,7 @@ class SaveFig_Window(QMainWindow):
 
 		Yes = QPushButton('Сохранить', self)
 		Yes.clicked.connect(self.savefig)
-		No = QPushButton('Закрыть', self)
+		No = QPushButton('Отмена', self)
 		No.clicked.connect(lambda:self.close())
 
 		layout = QGridLayout(self)
@@ -160,15 +159,15 @@ class SaveTab_Window(QMainWindow):
 		self.title=QLabel("Название файла")
 		self.name = QLineEdit(self)
 		self.name.setText("")
-		Yes_tab = QPushButton('Сохранить', self)
-		Yes_tab.clicked.connect(self.savetab)
-		No_tab = QPushButton('Отмена', self)
-		No_tab.clicked.connect(lambda:self.close())
+		Yes = QPushButton('Сохранить', self)
+		Yes.clicked.connect(self.savetab)
+		No = QPushButton('Отмена', self)
+		No.clicked.connect(lambda:self.close())
 		layout = QGridLayout(self)
 		layout.addWidget(self.title,0,0)
 		layout.addWidget(self.name,0,1)
-		layout.addWidget(Yes_tab,1,0)
-		layout.addWidget(No_tab,1,1)
+		layout.addWidget(Yes,1,0)
+		layout.addWidget(No,1,1)
 		Save_UI = QWidget()
 		Save_UI.setLayout(layout)
 		self.setCentralWidget(Save_UI)
@@ -200,14 +199,18 @@ class CDFE_Main_Window(QMainWindow):
 
 	def savetab_button_clk(self):
 		self.dialogtab.show()
+		global link
+		link = self.textbox.text()
 
 	def savefig_button_clk(self):
 		self.dialogfig.show()
+		global link
+		link = self.textbox.text()
 
 	def initUI1(self):
 		self.setWindowTitle('CDFE plotter')
 		self.setGeometry(10, 10, 540, 480)
-#		self.setWindowIcon(QIcon('cdfe_logo.gif'))
+		self.setWindowIcon(QIcon('cdfe_logo.gif'))
 
 		self.textbox = QLineEdit(self)
 		self.textbox.setText("")
@@ -249,4 +252,3 @@ app = QApplication(sys.argv)
 ex = CDFE_Main_Window()
 ex.show()
 sys.exit(app.exec_())
-
