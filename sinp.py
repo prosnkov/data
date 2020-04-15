@@ -1,7 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #My module with some mini programs for my science work
-#Version: 0.3.8
+#Version: 0.3.9
 #Upd: 27.02.2020
 from __future__ import unicode_literals
 import numpy as np
@@ -163,20 +163,47 @@ def xsor(prot, neut):
 	energ = np.float64(np.delete(table,[0,1,3,4],1)).ravel()
 	p = np.intc(np.delete(table,[0,1,2,4],1)).ravel()
 	n = np.intc(np.delete(table,[0,1,2,3],1)).ravel()
-	for i in range(len(k)):
-		if p[i]==prot and n[i]==neut:
-			break
-	xsmax=sec[i]
-	Emax=energ[i]
-	lines = open('sct'+str(k[i])+'.dat').readlines()			
-	table = np.array([row.split() for row in lines])
-	Eg = np.float64(np.delete(table,[1,2,3,4,5,6],1)).ravel()
-	xsg = np.float64(np.delete(table,[0,2,3,4,5,6],1)).ravel()
-	T0 = np.float64(np.delete(table,[0,1,3,4,5,6],1)).ravel()
-	T1 = np.float64(np.delete(table,[0,1,2,4,5,6],1)).ravel()
-	quad = np.float64(np.delete(table,[0,1,2,3,5,6],1)).ravel()
-	ober = np.float64(np.delete(table,[0,1,2,3,4,6],1)).ravel()
-	deut = np.float64(np.delete(table,[0,1,2,3,4,5],1)).ravel()
+	if prot=='abs' and neut=='abs':
+		j=0
+		lines = open('sct'+str(k[j])+'.dat').readlines()			
+		table = np.array([row.split() for row in lines])
+		Eg = np.float64(np.delete(table,[1,2,3,4,5,6],1)).ravel()
+		xsg = np.float64(np.delete(table,[0,2,3,4,5,6],1)).ravel()
+		T0 = np.float64(np.delete(table,[0,1,3,4,5,6],1)).ravel()
+		T1 = np.float64(np.delete(table,[0,1,2,4,5,6],1)).ravel()
+		quad = np.float64(np.delete(table,[0,1,2,3,5,6],1)).ravel()
+		ober = np.float64(np.delete(table,[0,1,2,3,4,6],1)).ravel()
+		deut = np.float64(np.delete(table,[0,1,2,3,4,5],1)).ravel()
+		j=j+1
+		while j<len(k):
+			lines = open('sct'+str(k[j])+'.dat').readlines()			
+			table = np.array([row.split() for row in lines])
+			xsg = xsg + np.float64(np.delete(table,[0,2,3,4,5,6],1)).ravel()
+			T0 = T0 + np.float64(np.delete(table,[0,1,3,4,5,6],1)).ravel()
+			T1 = T1 + np.float64(np.delete(table,[0,1,2,4,5,6],1)).ravel()
+			quad = quad + np.float64(np.delete(table,[0,1,2,3,5,6],1)).ravel()
+			ober = ober + np.float64(np.delete(table,[0,1,2,3,4,6],1)).ravel()
+			deut = deut + np.float64(np.delete(table,[0,1,2,3,4,5],1)).ravel()
+			j=j+1
+		xsmax=max(xsg)
+		for j in range(len(xsg)):
+			if xsg[j]==max(xsg):
+				Emax=Eg[j]
+	else:
+		for i in range(len(k)):
+			if p[i]==prot and n[i]==neut:
+				break
+		xsmax=sec[i]
+		Emax=energ[i]
+		lines = open('sct'+str(k[i])+'.dat').readlines()			
+		table = np.array([row.split() for row in lines])
+		Eg = np.float64(np.delete(table,[1,2,3,4,5,6],1)).ravel()
+		xsg = np.float64(np.delete(table,[0,2,3,4,5,6],1)).ravel()
+		T0 = np.float64(np.delete(table,[0,1,3,4,5,6],1)).ravel()
+		T1 = np.float64(np.delete(table,[0,1,2,4,5,6],1)).ravel()
+		quad = np.float64(np.delete(table,[0,1,2,3,5,6],1)).ravel()
+		ober = np.float64(np.delete(table,[0,1,2,3,4,6],1)).ravel()
+		deut = np.float64(np.delete(table,[0,1,2,3,4,5],1)).ravel()
 	result = namedtuple('arrays', ['xsmax','Emax','Eg','xsg','T0','T1','quad','ober','deut'])
 	return result(xsmax,Emax,Eg,xsg,T0,T1,quad,ober,deut)
 
