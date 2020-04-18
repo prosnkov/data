@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-#Program to make plots from CDFE cross sections with Qt5 interface
-#Version: 0.2.2
-#Upd: 11.04.2020
+#Program for taking data from CDFE-EXFOR database http://cdfe.sinp.msu.ru/exfor/index.php
+#Place an actual link (like http://cdfe.sinp.msu.ru/cgi-bin/exf2htm?LINK=M0164002) into the edit line
+#Version: 0.2.7
+#Upd: 14.04.2020
 
 from __future__ import unicode_literals
 import os
@@ -23,99 +24,130 @@ mpl.rcdefaults()
 mpl.font = mpl.font_manager.FontProperties(fname="/usr/share/matplotlib/mpl-data/fonts/ttf/cmb10.ttf")
 mpl.rc('figure', max_open_warning = 0)
 
+def is_float(val):
+	try:
+		float(val)
+	except ValueError:
+		return False
+	else:
+		return True
+
 def cdfe(link):
 	if link.endswith('&SOURCE=ON') == False:
 		link=link+'&SOURCE=ON'
+	if link.startswith('http://') == False:
+		link='http://'+link
 	r = requests.get(link)
 	lines = r.text.split('\n')
 	i=0
+	key=0
 	for line in lines:
-		if line.startswith('MEV        MB         MB') == True or \
-		line.startswith('MEV        MB') == True or \
-		line.startswith('MEV        B          B') == True or \
-		line.startswith('MEV        B') == True:
+		if line.startswith('MEV        MB         MB         NO-DIM') == True:
+			key=1.1
 			break
 		i=i+1
-	arr = r.text.split('\n')[i+1:-3]
-	arr = [re.sub(r'\s+', r' ', elem.lstrip().rstrip()).split() for elem in arr]
-	table = []
-	for elem in arr:
-		if len(elem) == 5:
-			table.append(elem[:2] + [0])
-		
-		else:
-			table.append(elem[:3])
-	x = np.float64(np.delete(table,[1,2],1)).ravel()
-	y = np.float64(np.delete(table,[0,2],1)).ravel()
-	err = np.float64(np.delete(table,[0,1],1)).ravel()
-	result = namedtuple('arrays', ['x','y','err'])
-	return result(x,y,err)
+	if key!=1.1:
+		i=0
+		for line in lines:
+			if line.startswith('MEV        MB         MB') == True or \
+			line.startswith('MEV        MB') == True or \
+			line.startswith('MEV        B          B') == True or \
+			line.startswith('MEV        B') == True or \
+			line.startswith('MEV        MICRO-B    MICRO-B') == True or \
+			line.startswith('GEV        MICRO-B    MICRO-B') == True or \
+			line.startswith('GEV        MICRO-B') == True or \
+			line.startswith('GEV        MB         MB') == True or \
+			line.startswith('GEV        MB') == True or \
+			line.startswith('KEV        MB         MB') == True or \
+			line.startswith('MEV        MB/SR      MB/SR') == True:
+				key=1
+				break
+			if line.startswith('MEV        MEV        MB         MB') == True:
+				key=2
+				break
+			i=i+1
+	if key==1 or key==1.1:
+		arr = r.text.split('\n')[i+1:-3]
+		arr = [re.sub(r'\s+', r' ', elem.lstrip().rstrip()).split() for elem in arr]
+		table = []
+		if key==1:
+			for elem in arr:
+				if len(elem) == 5 or len(elem) == 3:
+					table.append(elem[:2] + [0])
+				
+				if len(elem) == 6 or len(elem) == 4:
+					table.append(elem[:3])
+		if key==1.1:
+			for elem in arr:
+				if len(elem) == 4:
+					table.append(elem[:2] + [0])
+				
+				if len(elem) == 5 or len(elem) == 7 or len(elem) == 6:
+					table.append(elem[:3])
+		x = np.float64(np.delete(table,[1,2],1)).ravel()
+		y = np.float64(np.delete(table,[0,2],1)).ravel()
+		yerr=np.float64(np.delete(table,[0,1],1)).ravel()
+		result = namedtuple('arrays', ['x','y','yerr','key'])
+		key=1
+		return result(x,y,yerr,key)
+	if key==2:
+		arr = r.text.split('\n')[i+1:-3]
+		arr = [re.sub(r'\s+', r' ', elem.lstrip().rstrip()).split() for elem in arr]
+		table = []
+		for elem in arr:
+				if len(elem) == 5:
+					table.append(elem[:1] + [0] + elem[1:2] + [0])
+				
+				else:
+					table.append(elem[:4])
+		x = np.float64(np.delete(table,[1,2,3],1)).ravel()
+		xerr = np.float64(np.delete(table,[0,2,3],1)).ravel()
+		y = np.float64(np.delete(table,[0,1,3],1)).ravel()
+		yerr = np.float64(np.delete(table,[0,1,2],1)).ravel()
+		result = namedtuple('arrays', ['x','xerr','y','yerr','key'])
+		return result(x,xerr,y,yerr,key)
 
 class SaveFig_Window(QMainWindow):
 	def __init__(self,parent=None):
 		super(SaveFig_Window,self).__init__(parent)
+
 		self.setWindowTitle('Сохранить рисунок')
-
-		self.name_txt=QLabel("Название файла")
-		self.name = QLineEdit(self)
-		self.name.setText("")
-
-		self.tlt_txt=QLabel("Название графика")
-		self.tlt = QLineEdit(self)
-		self.tlt.setText("")
-
-		self.label_txt=QLabel("Реакция")
-		self.label = QLineEdit(self)
-		self.label.setText("")
-
-		self.xlab_txt=QLabel("Ось X")
-		self.xlab = QLineEdit(self)
-		self.xlab.setText("E, МэВ")
-		self.ylab_txt=QLabel("Ось Y")
-		self.ylab = QLineEdit(self)
-		self.ylab.setText("$\sigma$, мб")
-
-		self.col_txt=QLabel("Цвет")
-		self.col=QComboBox()
-		self.col.addItem('Чёрный')
-		self.col.addItem('Красный')
-		self.col.addItem('Зелёный')
-		self.col.addItem('Синий')
-
-		self.ty_txt=QLabel("Тип")
-		self.ty=QComboBox()
-		self.ty.addItem('Точки')
-		self.ty.addItem('Линии')
-
-		self.fm_txt=QLabel("Формат файла")
-		self.fm=QComboBox()
-		self.fm.addItem('eps')
-		self.fm.addItem('jpeg')
-
-		Yes = QPushButton('Сохранить', self)
-		Yes.clicked.connect(self.savefig)
-		No = QPushButton('Отмена', self)
-		No.clicked.connect(lambda:self.close())
+		self.name_txt=QLabel("Имя файла"); self.name = QLineEdit(self); self.name.setText("")
+		self.tlt_txt=QLabel("Заголовок"); self.tlt = QLineEdit(self); self.tlt.setText("")
+		self.label_txt=QLabel("Реакция"); self.label = QLineEdit(self);	self.label.setText("")
+		self.xlab_txt=QLabel("Ось X"); self.xlab = QLineEdit(self); self.xlab.setText("E, МэВ")
+		self.min_x_txt=QLabel("Min X"); self.min_x = QLineEdit(self); self.min_x.setText("")
+		self.max_x_txt=QLabel("Max X"); self.max_x = QLineEdit(self); self.max_x.setText("")
+		self.min_y_txt=QLabel("Min Y"); self.min_y = QLineEdit(self); self.min_y.setText("")
+		self.max_y_txt=QLabel("Max Y"); self.max_y = QLineEdit(self); self.max_y.setText("")
+		self.ylab_txt=QLabel("Ось Y"); self.ylab = QLineEdit(self); self.ylab.setText("$\sigma$, мб")
+		self.tlt_txt.setToolTip('Поддерживает TeX'); self.label_txt.setToolTip('Поддерживает TeX')
+		self.xlab_txt.setToolTip('Поддерживает TeX'); self.ylab_txt.setToolTip('Поддерживает TeX')
+		self.col_txt=QLabel("Цвет"); self.col=QComboBox()
+		self.col.addItem('Чёрный'); self.col.addItem('Красный'); self.col.addItem('Зелёный'); self.col.addItem('Синий')
+		self.ty_txt=QLabel("Тип"); self.ty=QComboBox()
+		self.ty.addItem('Точки'); self.ty.addItem('Линии')
+		self.fm_txt=QLabel("Формат"); self.fm=QComboBox()
+		self.fm.addItem('eps'); self.fm.addItem('jpeg')
+		self.pl_txt=QLabel("Место"); self.pl = QLineEdit(self); self.pl.setText(str(os.getcwd()))
+		Yes = QPushButton('Сохранить', self); Yes.clicked.connect(self.savefig)
+		No = QPushButton('Отмена', self); No.clicked.connect(lambda:self.close())
 
 		layout = QGridLayout(self)
-		layout.addWidget(self.name_txt,0,0)
-		layout.addWidget(self.name,0,1)
-		layout.addWidget(self.tlt_txt,1,0)
-		layout.addWidget(self.tlt,1,1)
-		layout.addWidget(self.label_txt,2,0)
-		layout.addWidget(self.label,2,1)
-		layout.addWidget(self.xlab_txt,3,0)
-		layout.addWidget(self.xlab,3,1)
-		layout.addWidget(self.ylab_txt,4,0)
-		layout.addWidget(self.ylab,4,1)
-		layout.addWidget(self.col_txt,5,0)
-		layout.addWidget(self.col,5,1)
-		layout.addWidget(self.ty_txt,6,0)
-		layout.addWidget(self.ty,6,1)
-		layout.addWidget(self.fm_txt,7,0)
-		layout.addWidget(self.fm,7,1)
-		layout.addWidget(Yes,8,0)
-		layout.addWidget(No,8,1)
+		layout.addWidget(self.name_txt,0,0); layout.addWidget(self.name,0,1)
+		layout.addWidget(self.tlt_txt,0,2); layout.addWidget(self.tlt,0,3)
+		layout.addWidget(self.label_txt,0,4); layout.addWidget(self.label,0,5)
+		layout.addWidget(self.xlab_txt,1,0); layout.addWidget(self.xlab,1,1)
+		layout.addWidget(self.min_x_txt,1,2); layout.addWidget(self.min_x,1,3)
+		layout.addWidget(self.max_x_txt,1,4); layout.addWidget(self.max_x,1,5)
+		layout.addWidget(self.ylab_txt,2,0); layout.addWidget(self.ylab,2,1)
+		layout.addWidget(self.min_y_txt,2,2); layout.addWidget(self.min_y,2,3)
+		layout.addWidget(self.max_y_txt,2,4); layout.addWidget(self.max_y,2,5)
+		layout.addWidget(self.col_txt,3,0); layout.addWidget(self.col,3,1)
+		layout.addWidget(self.ty_txt,3,2); layout.addWidget(self.ty,3,3)
+		layout.addWidget(self.fm_txt,3,4); layout.addWidget(self.fm,3,5)
+		layout.addWidget(self.pl_txt,4,0); layout.addWidget(self.pl,4,1,1,5)
+		layout.addWidget(Yes,5,0,1,3); layout.addWidget(No,5,3,1,3)
 		Save_UI = QWidget()
 		Save_UI.setLayout(layout)
 		self.setCentralWidget(Save_UI)
@@ -128,21 +160,27 @@ class SaveFig_Window(QMainWindow):
 		if self.col.currentIndex()==2:	clr='g'
 		if self.col.currentIndex()==3:	clr='b'
 		if self.ty.currentIndex()==0:
-			plt.scatter(cdfe(str(link)).x, cdfe(str(link)).y,c=clr,s=20,marker='o',label=str(self.label.text()))
-			plt.errorbar(cdfe(str(link)).x, cdfe(str(link)).y, cdfe(str(link)).err, ls='none',c=clr,elinewidth=1,capsize=2)
+			if cdfe(str(link)).key==1:
+				plt.scatter(cdfe(str(link)).x, cdfe(str(link)).y,c=clr,s=20,marker='o',label=str(self.label.text()))
+				plt.errorbar(cdfe(str(link)).x, cdfe(str(link)).y, yerr=cdfe(str(link)).yerr, ls='none',c=clr,elinewidth=1,capsize=2)
+			if cdfe(str(link)).key==2:
+				plt.scatter(cdfe(str(link)).x, cdfe(str(link)).y,c=clr,s=20,marker='o',label=str(self.label.text()))
+				plt.errorbar(cdfe(str(link)).x, cdfe(str(link)).y, yerr=cdfe(str(link)).yerr, xerr=cdfe(str(link)).xerr, ls='none',c=clr,elinewidth=1,capsize=2)
 		if self.ty.currentIndex()==1:
 			plt.plot(cdfe(str(link)).x,cdfe(str(link)).y,c=clr,linewidth=2,label=str(self.label.text()))
 		plt.tight_layout()
-		if self.label.text()!='':
-			plt.legend(fontsize=14)
-		if self.tlt.text()!='':
-			plt.title(self.tlt.text(),fontsize=14)
-		if self.xlab.text()!='':
-			plt.xlabel(self.xlab.text(),fontsize=14)
-		if self.ylab.text()!='':
-			plt.ylabel(self.ylab.text(),fontsize=14)
+		if self.label.text()!='': plt.legend(fontsize=14)
+		if self.tlt.text()!='':	plt.title(self.tlt.text(),fontsize=14)
+		if self.xlab.text()!='': plt.xlabel(self.xlab.text(),fontsize=14)
+		if self.ylab.text()!='': plt.ylabel(self.ylab.text(),fontsize=14)
+		x_min=float(self.min_x.text()) if self.min_x.text()!='' else None
+		x_max=float(self.max_x.text()) if self.max_x.text()!='' else None
+		y_min=float(self.min_y.text()) if self.min_y.text()!='' else None
+		y_max=float(self.max_y.text()) if self.max_y.text()!='' else None
+		plt.xlim(x_min,x_max), plt.ylim(y_min,y_max)
 		default_size = fig.get_size_inches() 
 		fig.set_size_inches(default_size[0]*2, default_size[1]*2,forward=True)
+		os.chdir(str(self.pl.text()))
 		if self.fm.currentIndex()==0:
 			fig.set_rasterized(False)
 			plt.savefig(str(self.name.text())+'.eps',fmt='eps',rasterized=False)
@@ -155,28 +193,30 @@ class SaveTab_Window(QMainWindow):
 	def __init__(self,parent=None):
 		super(SaveTab_Window,self).__init__(parent)
 		self.setWindowTitle('Сохранить таблицу')
-		self.title=QLabel("Название файла")
-		self.name = QLineEdit(self)
-		self.name.setText("")
-		Yes = QPushButton('Сохранить', self)
-		Yes.clicked.connect(self.savetab)
-		No = QPushButton('Отмена', self)
-		No.clicked.connect(lambda:self.close())
+		self.name_txt=QLabel("Название файла"); self.name = QLineEdit(self); self.name.setText("")
+		self.pl_txt=QLabel("Место"); self.pl = QLineEdit(self); self.pl.setText(str(os.getcwd()))
+		Yes = QPushButton('Сохранить', self); Yes.clicked.connect(self.savetab)
+		No = QPushButton('Отмена', self); No.clicked.connect(lambda:self.close())
 		layout = QGridLayout(self)
-		layout.addWidget(self.title,0,0)
-		layout.addWidget(self.name,0,1)
-		layout.addWidget(Yes,1,0)
-		layout.addWidget(No,1,1)
+		layout.addWidget(self.name_txt,0,0); layout.addWidget(self.name,0,1)
+		layout.addWidget(self.pl_txt,1,0); layout.addWidget(self.pl,1,1)
+		layout.addWidget(Yes,2,0); layout.addWidget(No,2,1)
 		Save_UI = QWidget()
 		Save_UI.setLayout(layout)
 		self.setCentralWidget(Save_UI)
 
 	def savetab(self):
 		global link
+		os.chdir(str(self.pl.text()))
 		f0 = open(str(self.name.text()),'w')
-		for i in range(len(cdfe(str(link)).x)):
-			f0.write(str(cdfe(str(link)).x[i]) + '\t' + str(cdfe(str(link)).y[i]) + '\t' + str(cdfe(str(link)).err[i]) + '\n')
-		f0.close()
+		if cdfe(str(link)).key == 1:
+			for i in range(len(cdfe(str(link)).x)):
+				f0.write(str(cdfe(str(link)).x[i]) + '\t' + str(cdfe(str(link)).y[i]) + '\t' + str(cdfe(str(link)).yerr[i]) + '\n')
+			f0.close()
+		if cdfe(str(link)).key == 2:
+			for i in range(len(cdfe(str(link)).x)):
+				f0.write(str(cdfe(str(link)).x[i]) + '\t' + str(cdfe(str(link)).xerr[i]) + '\t' + str(cdfe(str(link)).y[i]) + '\t' + str(cdfe(str(link)).yerr[i]) + '\n')
+			f0.close()
 		self.close()
 
 
@@ -191,7 +231,10 @@ class CDFE_Main_Window(QMainWindow):
 		global link
 		link = self.textbox.text()
 		ax.scatter(cdfe(str(link)).x, cdfe(str(link)).y,c='k',s=20,marker='o')
-		ax.errorbar(cdfe(str(link)).x, cdfe(str(link)).y, cdfe(str(link)).err, ls='none',c='k',elinewidth=1,capsize=2)
+		if cdfe(str(link)).key==1:
+			ax.errorbar(cdfe(str(link)).x, cdfe(str(link)).y, yerr=cdfe(str(link)).yerr, ls='none',c='k',elinewidth=1,capsize=2)
+		if cdfe(str(link)).key==2:
+			ax.errorbar(cdfe(str(link)).x, cdfe(str(link)).y, yerr=cdfe(str(link)).yerr, xerr=cdfe(str(link)).xerr, ls='none',c='k',elinewidth=1,capsize=2)
 		self.canvas.draw()
 #		for i in range(len(cdfe(str(link)).x)):
 #			self.text.setText(self.text.text()+str(cdfe(str(link)).x[i]) + '\t' + str(cdfe(str(link)).y[i]) + '\t' + str(cdfe(str(link)).err[i]) + '\n')
@@ -221,27 +264,17 @@ class CDFE_Main_Window(QMainWindow):
 
 #		self.text = QLabel()
 
-		plot_button = QPushButton('Нарисовать сечение', self)
-		plot_button.clicked.connect(self.plot)
-
-		save_table = QPushButton('Сохранить таблицу', self)
-		self.dialogtab = SaveTab_Window(self)
-		save_table.clicked.connect(self.savetab_button_clk)
-
-		save_figure = QPushButton('Сохранить рисунок', self)
-		self.dialogfig = SaveFig_Window(self)
-		save_figure.clicked.connect(self.savefig_button_clk)
-
-		bQuit = QPushButton('Выход', self)
-		bQuit.clicked.connect(QCoreApplication.instance().quit)
+		plot_button = QPushButton('Нарисовать сечение', self); plot_button.clicked.connect(self.plot)
+		save_table = QPushButton('Сохранить таблицу', self); self.dialogtab = SaveTab_Window(self); save_table.clicked.connect(self.savetab_button_clk)
+		save_figure = QPushButton('Сохранить рисунок', self); self.dialogfig = SaveFig_Window(self); save_figure.clicked.connect(self.savefig_button_clk)
+		bQuit = QPushButton('Выход', self); bQuit.clicked.connect(QCoreApplication.instance().quit)
 
 		layout = QGridLayout(self)
 		layout.addWidget(self.canvas,0,0,1,0)
 #		layout.addWidget(self.text,0,1)
 		layout.addWidget(self.textbox,1,0,1,0)
 		layout.addWidget(plot_button,2,0,1,0)
-		layout.addWidget(save_table,3,0)
-		layout.addWidget(save_figure,3,1)
+		layout.addWidget(save_table,3,0); layout.addWidget(save_figure,3,1)
 		layout.addWidget(bQuit,4,0,1,0)
 		Main_UI = QWidget()
 		Main_UI.setLayout(layout)
