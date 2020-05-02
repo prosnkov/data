@@ -1,15 +1,16 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-#Program for taking data from CDFE-EXFOR database http://cdfe.sinp.msu.ru/exfor/index.php
+#Program for taking data from CDFE-, NNDC-EXFOR and NNDC-ENDF databases
 #Place an actual link (like http://cdfe.sinp.msu.ru/cgi-bin/exf2htm?LINK=M0164002) into the edit line
-#Version: 0.3.2
-#Upd: 24.04.2020
+#Version: 0.5.2
+#Upd: 29.04.2020
 
 from __future__ import unicode_literals
 import os
 import numpy as np
 import requests
 import re
+import math
 from collections import namedtuple
 import sys
 from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QMenu, QGridLayout, QSizePolicy, QWidget, QPushButton, QLineEdit, QComboBox
@@ -32,19 +33,23 @@ def is_float(val):
 	else:
 		return True
 
-def cdfe(link):
-	if link.endswith('&SOURCE=ON') == False:
-		link=link+'&SOURCE=ON'
-	if link.startswith('http://') == False:
-		link='http://'+link
+def exfor(link):
+	if "cdfe" in link:
+		if link.endswith('&SOURCE=ON') == False:
+			link=link+'&SOURCE=ON'
+		if link.startswith('http://') == False:
+			link='http://'+link
+	if "nndc" in link:
+		if link.startswith('https://') == False:
+			link='https://'+link
 	r = requests.get(link)
 	lines = r.text.split('\n')
 	i=0
 	key=0
-	col1=['KEV','MEV','GEV','ADEG','NO-DIM']
-	col2=[' B',' MB',' MICRO-B',' B/SR',' MB/SR',' MU-B/SR',' NB/SR',' ARB-UNITS',' NO-DIM',' PC/FIS']
-	col3=[' B',' MB',' MICRO-B',' B/SR',' MB/SR',' MU-B/SR',' NB/SR',' ARB-UNITS',' NO-DIM',' PC/FIS','']
-	col4=[' NO-DIM',' MEV','']
+	col1=['#E,eV','MILLI-EV','EV','KEV','MEV','GEV','ADEG','NO-DIM']
+	col2=[' Sig,b',' B',' MB',' MICRO-B',' B/SR',' MB/SR',' MU-B/SR',' NB/SR',' ARB-UNITS',' NO-DIM',' PC/FIS',' PC/INC']
+	col3=[' B',' MB',' MICRO-B',' B/SR',' MB/SR',' MU-B/SR',' NB/SR',' ARB-UNITS',' NO-DIM',' PC/FIS',' PC/INC','']
+	col4=[' NO-DIM',' MILLI-EV',' EV',' KEV',' MEV',' GEV',' ADEG','']
 	for a in range(len(col1)):
 		i=0
 		for b in range(len(col2)):
@@ -56,54 +61,98 @@ def cdfe(link):
 					for line in lines:
 						if " ".join(line.split()).startswith(f'{col1[a]}{col2[b]}{col3[c]}{col4[d]}') == True or \
 						" ".join(line.split()).startswith(f'{col1[a]}{col4[d]}{col2[b]}{col3[c]}') == True:
-							if d==0:key=1.1
-							if d==1:key=2
-							if d==2:key=1
+							if a==0 and b==0:key=3
+							elif col3[c]==' NO-DIM' and col2[b]!=col3[c]:key=1.2
+							elif d==0:key=1.1
+							elif d in [1,2,3,4,5,6]:key=2
+							else:key=1
 							break
 						i=i+1
 					if key!=0: break
 				if key!=0: break
 			if key!=0: break
 		if key!=0: break
-	if key==1 or key==1.1:
-		arr = r.text.split('\n')[i+1:-3]
+	if key==1 or key==1.1 or key==1.2:
+		if "cdfe" in link:arr = r.text.split('\n')[i+1:-3]
+		if "nndc" in link:arr = r.text.split('\n')[i+1:-4]
 		arr = [re.sub(r'\s+', r' ', elem.lstrip().rstrip()).split() for elem in arr]
 		table = []
 		if key==1:
 			for elem in arr:
-				if len(elem)%2 != 0:
-					table.append(elem[:2] + [0])
-				if len(elem)%2 == 0:
-					table.append(elem[:3])
+				if "cdfe" in link:
+					if len(elem)%2 != 0:
+						table.append(elem[:2] + [0])
+					if len(elem)%2 == 0:
+						table.append(elem[:3])
+				if "nndc" in link:
+					if len(elem)<3:
+						table.append(elem[:2] + [0])
+					if len(elem)>=3:
+						table.append(elem[:3])
 		if key==1.1:
 			for elem in arr:
-				if len(elem) == 4:
+				if "cdfe" in link:
+					if len(elem) == 4:
+						table.append(elem[:2] + [0])
+					if len(elem) >= 5:
+						table.append(elem[:3])
+			key=1
+		if key==1.2:
+			for elem in arr:
 					table.append(elem[:2] + [0])
-				if len(elem) >= 5:
-					table.append(elem[:3])
+			key=1
 		x = np.float64(np.delete(table,[1,2],1)).ravel()
 		y = np.float64(np.delete(table,[0,2],1)).ravel()
 		yerr=np.float64(np.delete(table,[0,1],1)).ravel()
 		result = namedtuple('arrays', ['x','y','yerr','key'])
-		key=1
 		return result(x,y,yerr,key)
 	if key==2:
-		arr = r.text.split('\n')[i+1:-3]
+		if "cdfe" in link:arr = r.text.split('\n')[i+1:-3]
+		if "nndc" in link:arr = r.text.split('\n')[i+1:-4]
 		arr = [re.sub(r'\s+', r' ', elem.lstrip().rstrip()).split() for elem in arr]
 		table = []
 		for elem in arr:
-				if len(elem) == 5:
+			if "cdfe" in link:
+				if len(elem) == 3:
 					table.append(elem[:1] + [0] + elem[1:2] + [0])
+				if len(elem) == 4:
+					table.append(elem[:3] + [0])	
+				if len(elem) == 5:
+					if is_float(elem[2]) == False:
+						table.append(elem[:1] + [0] + elem[1:2] + [0])
+					if is_float(elem[2]) == True:
+						if is_float(elem[3]) == False:
+							table.append(elem[:3] + [0])
+						if is_float(elem[3]) == True:
+							table.append(elem[:4])
 				if len(elem) == 6:
 					table.append(elem[:3] + [0])				
 				if len(elem) >= 7:
 					table.append(elem[:4])
+			if "nndc" in link:
+				if len(elem) < 3:
+					table.append(elem[:1] + [0] + elem[1:2] + [0])
+				if len(elem) == 3:
+					table.append(elem[:3] + [0])				
+				if len(elem) >= 4:
+					table.append(elem[:4])				
 		x = np.float64(np.delete(table,[1,2,3],1)).ravel()
 		xerr = np.float64(np.delete(table,[0,2,3],1)).ravel()
 		y = np.float64(np.delete(table,[0,1,3],1)).ravel()
 		yerr = np.float64(np.delete(table,[0,1,2],1)).ravel()
 		result = namedtuple('arrays', ['x','xerr','y','yerr','key'])
 		return result(x,xerr,y,yerr,key)
+	if key==3:
+		if "GetTabData" in link:arr = r.text.split('\n')[i+1:-2]
+		if "GetTabSect" in link:arr = r.text.split('\n')[i+1:-26]
+		arr = [re.sub(r'\s+', r' ', elem.lstrip().rstrip()).split() for elem in arr]
+		table = []
+		for elem in arr:
+			table.append(elem[:2])
+		x = np.multiply(np.float64(np.delete(table,1,1)).ravel(),math.pow(10,-6))
+		y = np.multiply(np.float64(np.delete(table,0,1)).ravel(),math.pow(10,3))
+		result = namedtuple('arrays', ['x','y','key'])
+		return result(x,y,key)
 
 class SaveFig_Window(QMainWindow):
 	def __init__(self,parent=None):
@@ -160,17 +209,23 @@ class SaveFig_Window(QMainWindow):
 		if self.col.currentIndex()==2:	clr='g'
 		if self.col.currentIndex()==3:	clr='b'
 		if self.ty.currentIndex()==0:
-			if cdfe(str(link)).key==1:
-				plt.scatter(cdfe(str(link)).x, cdfe(str(link)).y,c=clr,s=20,marker='o',label=str(self.label.text()))
-				plt.errorbar(cdfe(str(link)).x, cdfe(str(link)).y, yerr=cdfe(str(link)).yerr, ls='none',c=clr,elinewidth=1,capsize=2)
-			if cdfe(str(link)).key==2:
-				plt.scatter(cdfe(str(link)).x, cdfe(str(link)).y,c=clr,s=20,marker='o',label=str(self.label.text()))
-				plt.errorbar(cdfe(str(link)).x, cdfe(str(link)).y, yerr=cdfe(str(link)).yerr, xerr=cdfe(str(link)).xerr, ls='none',c=clr,elinewidth=1,capsize=2)
+			x=exfor(str(link)).x
+			y=exfor(str(link)).y
+			plt.scatter(x, y,c=clr,s=20,marker='o',label=str(self.label.text()))
+			if exfor(str(link)).key==1:
+				yerr=exfor(str(link)).yerr
+				plt.errorbar(x, y, yerr=yerr, ls='none',c=clr,elinewidth=1,capsize=2)
+			if exfor(str(link)).key==2:
+				yerr=exfor(str(link)).yerr
+				xerr=exfor(str(link)).xerr
+				plt.errorbar(x, y, yerr=yerr, xerr=xerr, ls='none',c=clr,elinewidth=1,capsize=2)
 		if self.ty.currentIndex()==1:
-			plt.plot(cdfe(str(link)).x,cdfe(str(link)).y,c=clr,linewidth=2,label=str(self.label.text()))
+			x=exfor(str(link)).x
+			y=exfor(str(link)).y
+			plt.plot(x,y,c=clr,linewidth=2,label=str(self.label.text()))
 		plt.tight_layout()
 		if self.label.text()!='': plt.legend(fontsize=14)
-		if self.tlt.text()!='':	plt.title(self.tlt.text(),fontsize=14)
+		if self.tlt.text()!='': plt.title(self.tlt.text(),fontsize=14)
 		if self.xlab.text()!='': plt.xlabel(self.xlab.text(),fontsize=14)
 		if self.ylab.text()!='': plt.ylabel(self.ylab.text(),fontsize=14)
 		x_min=float(self.min_x.text()) if self.min_x.text()!='' else None
@@ -208,21 +263,30 @@ class SaveTab_Window(QMainWindow):
 	def savetab(self):
 		global link
 		os.chdir(str(self.pl.text()))
+		x=exfor(str(link)).x
+		y=exfor(str(link)).y
 		f0 = open(str(self.name.text()),'w')
-		if cdfe(str(link)).key == 1:
-			for i in range(len(cdfe(str(link)).x)):
-				f0.write(str(cdfe(str(link)).x[i]) + '\t' + str(cdfe(str(link)).y[i]) + '\t' + str(cdfe(str(link)).yerr[i]) + '\n')
+		if exfor(str(link)).key == 1:
+			yerr=exfor(str(link)).yerr
+			for i in range(len(x)):
+				f0.write(str(x[i]) + '\t' + str(y[i]) + '\t' + str(yerr[i]) + '\n')
 			f0.close()
-		if cdfe(str(link)).key == 2:
-			for i in range(len(cdfe(str(link)).x)):
-				f0.write(str(cdfe(str(link)).x[i]) + '\t' + str(cdfe(str(link)).xerr[i]) + '\t' + str(cdfe(str(link)).y[i]) + '\t' + str(cdfe(str(link)).yerr[i]) + '\n')
+		if exfor(str(link)).key == 2:
+			yerr=exfor(str(link)).yerr
+			xerr=exfor(str(link)).xerr
+			for i in range(len(exfor(str(link)).x)):
+				f0.write(str(x[i]) + '\t' + str(xerr[i]) + '\t' + str(y[i]) + '\t' + str(yerr[i]) + '\n')
+			f0.close()
+		if exfor(str(link)).key == 3:
+			for i in range(len(exfor(str(link)).x)):
+				f0.write(str(x[i]) + '\t' + str(y[i]) + '\n')
 			f0.close()
 		self.close()
 
 
-class CDFE_Main_Window(QMainWindow):
+class EXFOR_Main_Window(QMainWindow):
 	def __init__(self,parent=None):
-		super(CDFE_Main_Window,self).__init__(parent)
+		super(EXFOR_Main_Window,self).__init__(parent)
 		self.initUI1()
 
 	def plot(self):
@@ -230,11 +294,17 @@ class CDFE_Main_Window(QMainWindow):
 		ax = self.figure.add_subplot(111)
 		global link
 		link = self.textbox.text()
-		ax.scatter(cdfe(str(link)).x, cdfe(str(link)).y,c='k',s=20,marker='o')
-		if cdfe(str(link)).key==1:
-			ax.errorbar(cdfe(str(link)).x, cdfe(str(link)).y, yerr=cdfe(str(link)).yerr, ls='none',c='k',elinewidth=1,capsize=2)
-		if cdfe(str(link)).key==2:
-			ax.errorbar(cdfe(str(link)).x, cdfe(str(link)).y, yerr=cdfe(str(link)).yerr, xerr=cdfe(str(link)).xerr, ls='none',c='k',elinewidth=1,capsize=2)
+#		print(str(exfor(str(link)).key))
+		x=exfor(str(link)).x
+		y=exfor(str(link)).y
+		ax.scatter(x, y,c='k',s=20,marker='o')
+		if exfor(str(link)).key==1:
+			yerr=exfor(str(link)).yerr
+			ax.errorbar(x, y, yerr=yerr, ls='none',c='k',elinewidth=1,capsize=2)
+		if exfor(str(link)).key==2:
+			yerr=exfor(str(link)).yerr
+			xerr=exfor(str(link)).xerr
+			ax.errorbar(x, y, yerr=yerr, xerr=xerr, ls='none',c='k',elinewidth=1,capsize=2)
 		self.canvas.draw()
 #		for i in range(len(cdfe(str(link)).x)):
 #			self.text.setText(self.text.text()+str(cdfe(str(link)).x[i]) + '\t' + str(cdfe(str(link)).y[i]) + '\t' + str(cdfe(str(link)).err[i]) + '\n')
@@ -250,7 +320,7 @@ class CDFE_Main_Window(QMainWindow):
 		link = self.textbox.text()
 
 	def initUI1(self):
-		self.setWindowTitle('CDFE plotter')
+		self.setWindowTitle('EXFOR plotter')
 		self.setGeometry(10, 10, 540, 480)
 		self.setWindowIcon(QIcon('cdfe_logo.gif'))
 
@@ -281,6 +351,6 @@ class CDFE_Main_Window(QMainWindow):
 		self.setCentralWidget(Main_UI)
 
 app = QApplication(sys.argv)
-ex = CDFE_Main_Window()
+ex = EXFOR_Main_Window()
 ex.show()
 sys.exit(app.exec_())
