@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #My module with some mini programs for my science work
 #Version: 0.3.9
-#Upd: 27.02.2020
+#Upd: 02.05.2020
 from __future__ import unicode_literals
 import numpy as np
 import requests
@@ -58,30 +58,75 @@ def xstal(element, mass, prot, neut):
 def cdfe(link):
 	if link.endswith('&SOURCE=ON') == False:
 		link=link+'&SOURCE=ON'
+	if link.startswith('http://') == False:
+		link='http://'+link
 	r = requests.get(link)
 	lines = r.text.split('\n')
 	i=0
-	for line in lines:
-		if line.startswith('MEV        MB         MB') == True or \
-		line.startswith('MEV        MB') == True or \
-		line.startswith('MEV        B          B') == True or \
-		line.startswith('MEV        B') == True:
-			break
-		i=i+1
-	arr = r.text.split('\n')[i+1:-3]
-	arr = [re.sub(r'\s+', r' ', elem.lstrip().rstrip()).split() for elem in arr]
-	table = []
-	for elem in arr:
-		if len(elem) == 5:
-			table.append(elem[:2] + [0])
-		
-		else:
-			table.append(elem[:3])
-	x = np.float64(np.delete(table,[1,2],1)).ravel()
-	y = np.float64(np.delete(table,[0,2],1)).ravel()
-	err = np.float64(np.delete(table,[0,1],1)).ravel()
-	result = namedtuple('arrays', ['x','y','err'])
-	return result(x,y,err)
+	key=0
+	col1=['KEV','MEV','GEV','ADEG','NO-DIM']
+	col2=[' B',' MB',' MICRO-B',' B/SR',' MB/SR',' MU-B/SR',' NB/SR',' ARB-UNITS',' NO-DIM',' PC/FIS']
+	col3=[' B',' MB',' MICRO-B',' B/SR',' MB/SR',' MU-B/SR',' NB/SR',' ARB-UNITS',' NO-DIM',' PC/FIS','']
+	col4=[' NO-DIM',' MEV','']
+	for a in range(len(col1)):
+		i=0
+		for b in range(len(col2)):
+			i=0
+			for c in range(len(col3)):
+				i=0
+				for d in range(len(col4)):
+					i=0
+					for line in lines:
+						if " ".join(line.split()).startswith(f'{col1[a]}{col2[b]}{col3[c]}{col4[d]}') == True or \
+						" ".join(line.split()).startswith(f'{col1[a]}{col4[d]}{col2[b]}{col3[c]}') == True:
+							if d==0:key=1.1
+							if d==1:key=2
+							if d==2:key=1
+							break
+						i=i+1
+					if key!=0: break
+				if key!=0: break
+			if key!=0: break
+		if key!=0: break
+	if key==1 or key==1.1:
+		arr = r.text.split('\n')[i+1:-3]
+		arr = [re.sub(r'\s+', r' ', elem.lstrip().rstrip()).split() for elem in arr]
+		table = []
+		if key==1:
+			for elem in arr:
+				if len(elem)%2 != 0:
+					table.append(elem[:2] + [0])
+				if len(elem)%2 == 0:
+					table.append(elem[:3])
+		if key==1.1:
+			for elem in arr:
+				if len(elem) == 4:
+					table.append(elem[:2] + [0])
+				if len(elem) >= 5:
+					table.append(elem[:3])
+		x = np.float64(np.delete(table,[1,2],1)).ravel()
+		y = np.float64(np.delete(table,[0,2],1)).ravel()
+		yerr=np.float64(np.delete(table,[0,1],1)).ravel()
+		result = namedtuple('arrays', ['x','y','yerr','key'])
+		key=1
+		return result(x,y,yerr,key)
+	if key==2:
+		arr = r.text.split('\n')[i+1:-3]
+		arr = [re.sub(r'\s+', r' ', elem.lstrip().rstrip()).split() for elem in arr]
+		table = []
+		for elem in arr:
+				if len(elem) == 5:
+					table.append(elem[:1] + [0] + elem[1:2] + [0])
+				if len(elem) == 6:
+					table.append(elem[:3] + [0])				
+				if len(elem) >= 7:
+					table.append(elem[:4])
+		x = np.float64(np.delete(table,[1,2,3],1)).ravel()
+		xerr = np.float64(np.delete(table,[0,2,3],1)).ravel()
+		y = np.float64(np.delete(table,[0,1,3],1)).ravel()
+		yerr = np.float64(np.delete(table,[0,1,2],1)).ravel()
+		result = namedtuple('arrays', ['x','xerr','y','yerr','key'])
+		return result(x,xerr,y,yerr,key)
 
 #parsing data from ENDF database at nndc.bnl.gov, added Nov 2018
 #	E=sinp.endf(link).x
