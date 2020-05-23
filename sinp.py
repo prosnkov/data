@@ -203,12 +203,46 @@ def nonsmok(element,mass,param='n'):
 def xsor(prot, neut):
 	lines = open('key').readlines()
 	table = np.array([row.split() for row in lines])
-	k = np.intc(np.delete(table,[1,2,3,4],1)).ravel()
+	k = np.intc(np.delete(table,[1,2,3,4],1))
 	sec = np.float64(np.delete(table,[0,2,3,4],1)).ravel()
 	energ = np.float64(np.delete(table,[0,1,3,4],1)).ravel()
 	p = np.intc(np.delete(table,[0,1,2,4],1)).ravel()
 	n = np.intc(np.delete(table,[0,1,2,3],1)).ravel()
+	#with 00
+	if prot=='all' and neut=='all':
+		j=0
+		k=k.ravel()
+		lines = open('sct'+str(k[j])+'.dat').readlines()			
+		table = np.array([row.split() for row in lines])
+		Eg = np.float64(np.delete(table,[1,2,3,4,5,6],1)).ravel()
+		xsg = np.float64(np.delete(table,[0,2,3,4,5,6],1)).ravel()
+		T0 = np.float64(np.delete(table,[0,1,3,4,5,6],1)).ravel()
+		T1 = np.float64(np.delete(table,[0,1,2,4,5,6],1)).ravel()
+		quad = np.float64(np.delete(table,[0,1,2,3,5,6],1)).ravel()
+		ober = np.float64(np.delete(table,[0,1,2,3,4,6],1)).ravel()
+		deut = np.float64(np.delete(table,[0,1,2,3,4,5],1)).ravel()
+		j=j+1
+		while j<len(k):
+			lines = open('sct'+str(k[j])+'.dat').readlines()			
+			table = np.array([row.split() for row in lines])
+			xsg = xsg + np.float64(np.delete(table,[0,2,3,4,5,6],1)).ravel()
+			T0 = T0 + np.float64(np.delete(table,[0,1,3,4,5,6],1)).ravel()
+			T1 = T1 + np.float64(np.delete(table,[0,1,2,4,5,6],1)).ravel()
+			quad = quad + np.float64(np.delete(table,[0,1,2,3,5,6],1)).ravel()
+			ober = ober + np.float64(np.delete(table,[0,1,2,3,4,6],1)).ravel()
+			deut = deut + np.float64(np.delete(table,[0,1,2,3,4,5],1)).ravel()
+			j=j+1
+		xsmax=max(xsg)
+		for j in range(len(xsg)):
+			if xsg[j]==max(xsg):
+				Emax=Eg[j]
+	#without 00
 	if prot=='abs' and neut=='abs':
+		j=0
+		for j in range(len(k)):
+			if p[j]==0 and n[j]==0:
+				k=np.delete(k,j)
+		k=k.ravel()
 		j=0
 		lines = open('sct'+str(k[j])+'.dat').readlines()			
 		table = np.array([row.split() for row in lines])
@@ -234,7 +268,8 @@ def xsor(prot, neut):
 		for j in range(len(xsg)):
 			if xsg[j]==max(xsg):
 				Emax=Eg[j]
-	else:
+	if isinstance(prot,int)==True and isinstance(neut,int)==True:
+		k=k.ravel()
 		for i in range(len(k)):
 			if p[i]==prot and n[i]==neut:
 				break
