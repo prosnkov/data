@@ -30,7 +30,7 @@ poper=np.zeros(len(l))
 key1=np.zeros(len(l))
 key2=np.zeros(len(l))
 data=np.zeros(2)
-tiks=520
+tiks=550
 dt=10
 k=0
 
@@ -48,39 +48,38 @@ for j2 in range(len(key)):
 				y1 = np.float64(np.delete(table,0,1)).ravel()
 				if max(y1)-53500>0:
 					try:
-						x=x1
-						y=y1
-						A_guess = integrate.simps(y,x)
-						y0_guess = min(y)
-						x0_guess = x[0]
-						for j1 in range(len(x)):
-							if y[j1]==max(y):
-								x0_guess=x[j1]
-						w_guess=2*integrate.simps(y,x)/(np.pi*max(y))
-						pguess = [y0_guess, A_guess, w_guess, x0_guess]
-						popt, pcov = curve_fit(func, x, y, p0 = pguess)
-						y0, A, w, x0 = popt[0], popt[1], popt[2], popt[3]
+						for j1 in range(len(x1)):
+							if y1[j1]==max(y1):
+								x0_guess=x1[j1]
 						tiks1=tiks
-						while popt[1]<0:
-							print('A='+"{:.2f}".format(popt[1])+', retry')
-							tiks1=tiks1-dt
-							x=x1[j1-tiks1:j1+tiks1]
-							y=y1[j1-tiks1:j1+tiks1]
-							A_guess = integrate.simps(y,x)
-							y0_guess = min(y)
-							x0_guess = x[0]
-							for j3 in range(len(x)):
-								if y[j3]==max(y):
-									x0_guess=x[j3]
-							w_guess=2*integrate.simps(y,x)/(np.pi*max(y))
-							pguess = [y0_guess, A_guess, w_guess, x0_guess]
-							popt, pcov = curve_fit(func, x, y, p0 = pguess)
-							y0, A, w, x0 = popt[0], popt[1], popt[2], popt[3]
-						paral[i]=popt[1]
-						if popt[1]>0:							
+						while paral[i]<=0:
+							try:
+								print('A='+"{:.2f}".format(paral[i])+', retry, ticks='+str(tiks1))
+								x=x1[j1-tiks1:j1+tiks1]
+								y=y1[j1-tiks1:j1+tiks1]
+								A_guess = integrate.simps(y,x)
+								y0_guess = min(y)
+								x0_guess = x[0]
+								for j3 in range(len(x)):
+									if y[j3]==max(y):
+										x0_guess=x[j3]
+								w_guess=2*integrate.simps(y,x)/(np.pi*max(y))
+								pguess = [y0_guess, A_guess, w_guess, x0_guess]
+								popt, pcov = curve_fit(func, x, y, p0 = pguess)
+								y0, A, w, x0 = popt[0], popt[1], popt[2], popt[3]
+								paral[i]=popt[1]
+								tiks1=tiks1-dt
+							except RuntimeError:
+								tiks1=tiks1-dt
+								continue
+							break
+							if tiks1<10:
+								key1[i]=0
+								break
+						if paral[i]>0:							
 							key1[i]=1
-							print('A='+"{:.2f}".format(popt[1])+', ok')
-						if popt[1]<0:							
+							print('A='+"{:.2f}".format(paral[i])+', ok')
+						if paral[i]<0:							
 							key1[i]=0
 							print('A<0')
 					except RuntimeError:
@@ -130,39 +129,38 @@ for j2 in range(len(key)):
 				y1 = np.float64(np.delete(table,0,1)).ravel()
 				if max(y1)-53500>0:
 					try:
-						x=x1
-						y=y1
-						A_guess = integrate.simps(y,x)
-						y0_guess = min(y)
-						x0_guess = x[0]
-						for j1 in range(len(x)):
-							if y[j1]==max(y):
-								x0_guess=x[j1]
-						w_guess=2*integrate.simps(y,x)/(np.pi*max(y))
-						pguess = [y0_guess, A_guess, w_guess, x0_guess]
-						popt, pcov = curve_fit(func, x, y, p0 = pguess)
-						y0, A, w, x0 = popt[0], popt[1], popt[2], popt[3]
+						for j1 in range(len(x1)):
+							if y1[j1]==max(y1):
+								x0_guess=x1[j1]
 						tiks1=tiks
-						while popt[1]<0:
-							print('A='+"{:.2f}".format(popt[1])+', retry')
-							tiks1=tiks1-dt
-							x=x1[j1-tiks1:j1+tiks1]
-							y=y1[j1-tiks1:j1+tiks1]
-							A_guess = integrate.simps(y,x)
-							y0_guess = min(y)
-							x0_guess = x[0]
-							for j3 in range(len(x)):
-								if y[j3]==max(y):
-									x0_guess=x[j3]
-							w_guess=2*integrate.simps(y,x)/(np.pi*max(y))
-							pguess = [y0_guess, A_guess, w_guess, x0_guess]
-							popt, pcov = curve_fit(func, x, y, p0 = pguess)
-							y0, A, w, x0 = popt[0], popt[1], popt[2], popt[3]
+						while poper[i]<=0:
+							try:
+								print('A='+"{:.2f}".format(poper[i])+', retry, ticks='+str(tiks1))
+								x=x1[j1-tiks1:j1+tiks1]
+								y=y1[j1-tiks1:j1+tiks1]
+								A_guess = integrate.simps(y,x)
+								y0_guess = min(y)
+								x0_guess = x[0]
+								for j3 in range(len(x)):
+									if y[j3]==max(y):
+										x0_guess=x[j3]
+								w_guess=2*integrate.simps(y,x)/(np.pi*max(y))
+								pguess = [y0_guess, A_guess, w_guess, x0_guess]
+								popt, pcov = curve_fit(func, x, y, p0 = pguess)
+								y0, A, w, x0 = popt[0], popt[1], popt[2], popt[3]
+								tiks1=tiks1-dt
+							except RuntimeError:
+								tiks1=tiks1-dt
+								continue
+							break
+							if tiks1<10:
+								key2[i]=0
+								break
 						poper[i]=popt[1]
-						if popt[1]>0:							
+						if poper[i]>0:							
 							key2[i]=1
-							print('A='+"{:.2f}".format(popt[1])+', ok')
-						if popt[1]<0:							
+							print('A='+"{:.2f}".format(poper[i])+', ok')
+						if poper[i]<0:							
 							key2[i]=0
 							print('A<0')
 					except RuntimeError:
