@@ -52,6 +52,7 @@ for j2 in range(len(key)):
 							if y1[j1]==max(y1):
 								x0_guess=x1[j1]
 						tiks1=tiks
+						paral[i]=0
 						while paral[i]<=0:
 							try:
 								print('A='+"{:.2f}".format(paral[i])+', retry, ticks='+str(tiks1))
@@ -72,6 +73,7 @@ for j2 in range(len(key)):
 							except RuntimeError:
 								tiks1=tiks1-dt
 								continue
+
 							break
 							if tiks1<10:
 								key1[i]=0
@@ -133,6 +135,7 @@ for j2 in range(len(key)):
 							if y1[j1]==max(y1):
 								x0_guess=x1[j1]
 						tiks1=tiks
+						poper[i]=0
 						while poper[i]<=0:
 							try:
 								print('A='+"{:.2f}".format(poper[i])+', retry, ticks='+str(tiks1))
@@ -148,6 +151,7 @@ for j2 in range(len(key)):
 								pguess = [y0_guess, A_guess, w_guess, x0_guess]
 								popt, pcov = curve_fit(func, x, y, p0 = pguess)
 								y0, A, w, x0 = popt[0], popt[1], popt[2], popt[3]
+								poper[i]=popt[1]
 								tiks1=tiks1-dt
 							except RuntimeError:
 								tiks1=tiks1-dt
