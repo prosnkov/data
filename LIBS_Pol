@@ -6,6 +6,7 @@ import numpy as np
 import glob
 import scipy.integrate as integrate
 from scipy.optimize import curve_fit
+import scipy.signal as signal
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -46,44 +47,42 @@ for j2 in range(len(key)):
 				x1 = np.float64(np.delete(table,1,1)).ravel()
 				y1 = np.float64(np.delete(table,0,1)).ravel()
 				rs=0
-				if max(y1)-53500>0:
-					try:
-						x0_guess=x1[np.argmax(y1)]
-						ticks=len(x1)//2-20
-						paral[i]=0
-						while paral[i]<=0 or rs<0.98:
-							try:
-								print('A='+"{:.2f}".format(paral[i])+', retry, ticks='+str(ticks)+', rs='+str(rs))
-								x=x1[np.argmax(y1)-ticks:np.argmax(y1)+ticks]
-								y=y1[np.argmax(y1)-ticks:np.argmax(y1)+ticks]
-								A_guess = integrate.simps(y,x)
-								y0_guess = min(y)
-								x0_guess=x[np.argmax(y)]
-								w_guess=2*integrate.simps(y,x)/(np.pi*max(y))
-								pguess = [y0_guess, A_guess, w_guess, x0_guess]
-								popt, pcov = curve_fit(func, x, y, p0 = pguess)
-								y0, A, w, x0 = popt[0], popt[1], popt[2], popt[3]
-								paral[i]=popt[1]
-								rs=1-(np.sum((y-func(x,popt[0],popt[1],popt[2],popt[3]))**2)/np.sum((y-np.mean(y))**2))
-								ticks=ticks-dt
-							except RuntimeError:
-								ticks=ticks-dt
-								continue
-							if ticks<10:
-								key1[i]=0
-								break
-						if paral[i]>0:							
-							key1[i]=1
-							print('A='+"{:.2f}".format(paral[i])+', ok'+', rs='+str(rs))
-						if paral[i]<0:							
+				peaks=signal.find_peaks(y1, prominence=1000)
+				if len(peaks[0])>=1:
+					x0_guess=x1[np.argmax(y1)]
+					ticks=len(x1)//2-20
+					paral[i]=0
+					while paral[i]<=0 or rs<0.98:
+						try:
+							print('A='+"{:.2f}".format(paral[i])+', retry, ticks='+str(ticks)+', rs='+str(rs))
+							x=x1[np.argmax(y1)-ticks:np.argmax(y1)+ticks]
+							y=y1[np.argmax(y1)-ticks:np.argmax(y1)+ticks]
+							A_guess = integrate.simps(y,x)
+							y0_guess = min(y)
+							x0_guess=x[np.argmax(y)]
+							w_guess=2*integrate.simps(y,x)/(np.pi*max(y))
+							pguess = [y0_guess, A_guess, w_guess, x0_guess]
+							popt, pcov = curve_fit(func, x, y, p0 = pguess)
+							y0, A, w, x0 = popt[0], popt[1], popt[2], popt[3]
+							paral[i]=popt[1]
+							rs=1-(np.sum((y-func(x,popt[0],popt[1],popt[2],popt[3]))**2)/np.sum((y-np.mean(y))**2))
+							ticks=ticks-dt
+						except RuntimeError:
+							ticks=ticks-dt
+							continue
+						if ticks<10:
 							key1[i]=0
-							print('A='+"{:.2f}".format(paral[i])+', not ok'+', rs='+str(rs))
-					except RuntimeError:
+							print('No generation, max_y='+str(max(y1)))
+							break
+					if paral[i]>0 and ticks>=10:							
+						key1[i]=1
+						print('A='+"{:.2f}".format(paral[i])+', ok'+', rs='+str(rs))
+					if paral[i]<=0 or ticks<10:							
 						key1[i]=0
-						print('RuntimeError')
+						print('A='+"{:.2f}".format(paral[i])+', not ok'+', rs='+str(rs))
 				else:
 					key1[i]=0
-					print('No generation, max_y='+str(max(y1)))
+					print('No generation')
 				if key1[i]==1:
 					if os.path.exists('fitting')==False:
 						os.mkdir('fitting')
@@ -124,45 +123,43 @@ for j2 in range(len(key)):
 				x1 = np.float64(np.delete(table,1,1)).ravel()
 				y1 = np.float64(np.delete(table,0,1)).ravel()
 				rs=0
-				if max(y1)-53500>0:
-					try:
-						x0_guess=x1[np.argmax(y1)]
-						ticks=len(x1)//2-20
-						poper[i]=0
-						while poper[i]<=0 or rs<0.98:
-							try:
-								print('A='+"{:.2f}".format(poper[i])+', retry, ticks='+str(ticks)+', rs='+str(rs))
-								x=x1[np.argmax(y1)-ticks:np.argmax(y1)+ticks]
-								y=y1[np.argmax(y1)-ticks:np.argmax(y1)+ticks]
-								A_guess = integrate.simps(y,x)
-								y0_guess = min(y)
-								x0_guess=x[np.argmax(y)]
-								w_guess=2*integrate.simps(y,x)/(np.pi*max(y))
-								pguess = [y0_guess, A_guess, w_guess, x0_guess]
-								popt, pcov = curve_fit(func, x, y, p0 = pguess)
-								y0, A, w, x0 = popt[0], popt[1], popt[2], popt[3]
-								poper[i]=popt[1]
-								rs=1-(np.sum((y-func(x,popt[0],popt[1],popt[2],popt[3]))**2)/np.sum((y-np.mean(y))**2))
-								ticks=ticks-dt
-							except RuntimeError:
-								ticks=ticks-dt
-								continue
-							if ticks<10:
-								key2[i]=0
-								break
-						poper[i]=popt[1]
-						if poper[i]>0:							
-							key2[i]=1
-							print('A='+"{:.2f}".format(poper[i])+', ok'+', rs='+str(rs))
-						if poper[i]<0:							
+				peaks=signal.find_peaks(y1, prominence=1000)
+				if len(peaks[0])>=1:
+					x0_guess=x1[np.argmax(y1)]
+					ticks=len(x1)//2-20
+					poper[i]=0
+					while poper[i]<=0 or rs<0.98:
+						try:
+							print('A='+"{:.2f}".format(poper[i])+', retry, ticks='+str(ticks)+', rs='+str(rs))
+							x=x1[np.argmax(y1)-ticks:np.argmax(y1)+ticks]
+							y=y1[np.argmax(y1)-ticks:np.argmax(y1)+ticks]
+							A_guess = integrate.simps(y,x)
+							y0_guess = min(y)
+							x0_guess=x[np.argmax(y)]
+							w_guess=2*integrate.simps(y,x)/(np.pi*max(y))
+							pguess = [y0_guess, A_guess, w_guess, x0_guess]
+							popt, pcov = curve_fit(func, x, y, p0 = pguess)
+							y0, A, w, x0 = popt[0], popt[1], popt[2], popt[3]
+							poper[i]=popt[1]
+							rs=1-(np.sum((y-func(x,popt[0],popt[1],popt[2],popt[3]))**2)/np.sum((y-np.mean(y))**2))
+							ticks=ticks-dt
+						except RuntimeError:
+							ticks=ticks-dt
+							continue
+						if ticks<10:
 							key2[i]=0
-							print('A='+"{:.2f}".format(poper[i])+', not ok'+', rs='+str(rs))
-					except RuntimeError:
+							print('No generation, max_y='+str(max(y1)))
+							break
+					poper[i]=popt[1]
+					if poper[i]>0:							
+						key2[i]=1
+						print('A='+"{:.2f}".format(poper[i])+', ok'+', rs='+str(rs))
+					if poper[i]<=0:							
 						key2[i]=0
-						print('RuntimeError')
+						print('A='+"{:.2f}".format(poper[i])+', not ok'+', rs='+str(rs))
 				else:
 					key2[i]=0
-					print('No generation, max_y='+str(max(y1)))
+					print('No generation')
 				if key2[i]==1:
 					if os.path.exists('fitting')==False:
 						os.mkdir('fitting')
