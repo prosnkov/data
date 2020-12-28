@@ -20,8 +20,8 @@ nak=['90','sg']
 gen=['00','90']
 key=[1,2,'1 side','2 side']
 
-def func(x, y0, A, w, x0):
-	return y0+2*A/np.pi*w/(4*(x-x0)**2+w**2)
+def func(x, y0, A, w, x0, mu):
+	return y0+A*(mu*2/np.pi*w/(4*(x-x0)**2+w**2)+(1-mu)*np.sqrt(4*np.log(2))/(np.sqrt(np.pi)*w)*np.exp(-4*np.log(2)/(w**2)*(x-x0)**2))
 
 d=os.getcwd() 
 os.chdir(d)
@@ -57,23 +57,27 @@ for j2 in range(len(key)):
 					rs=0
 					peaks=signal.find_peaks(y1, prominence=1000)
 					if len(peaks[0])>=1:
-						x0_guess=x1[np.argmax(y1)]
+						mu=1
 						ticks=len(x1)//2-20
-						gener[j2][i][j][k]=0
-						while gener[j2][i][j][k]<=0 or rs<0.98:
+						while gener[j2][i][j][k]<=0 or rs<0.99 or mu>1:
 							try:
 								print('A='+"{:.2f}".format(gener[j2][i][j][k])+', retry, ticks='+str(ticks)+', rs='+str(rs))
 								x=x1[np.argmax(y1)-ticks:np.argmax(y1)+ticks]
 								y=y1[np.argmax(y1)-ticks:np.argmax(y1)+ticks]
 								A_guess = integrate.simps(y,x)
 								y0_guess = min(y)
-								x0_guess=x[np.argmax(y)]
-								w_guess=2*integrate.simps(y,x)/(np.pi*max(y))
-								pguess = [y0_guess, A_guess, w_guess, x0_guess]
+								x0_guess = x[0]
+								if A_guess>0:
+									x0_guess=x[np.argmax(y)]
+								if A_guess<0:
+									x0_guess=x[np.argmin(y)]
+								w_guess=0.85*2*integrate.simps(y,x)/(np.pi*max(y))
+								mu_guess=1
+								pguess = [y0_guess, A_guess, w_guess, x0_guess, mu_guess]
 								popt, pcov = curve_fit(func, x, y, p0 = pguess)
-								y0, A, w, x0 = popt[0], popt[1], popt[2], popt[3]
+								y0, A, w, x0, mu = popt[0], popt[1], popt[2], popt[3], popt[4]
 								gener[j2][i][j][k]=popt[1]
-								rs=1-(np.sum((y-func(x,popt[0],popt[1],popt[2],popt[3]))**2)/np.sum((y-np.mean(y))**2))
+								rs=1-(np.sum((y-func(x,popt[0],popt[1],popt[2],popt[3],popt[4]))**2)/np.sum((y-np.mean(y))**2))
 								ticks=ticks-dt
 							except RuntimeError:
 								ticks=ticks-dt
@@ -97,7 +101,7 @@ for j2 in range(len(key)):
 						os.chdir('fitting')
 						fig = plt.figure()
 						plt.scatter(x,y,c='k',s=14,marker='o')
-						plt.plot(np.arange(x1[0],x1[-1],0.0001),func(np.arange(x1[0],x1[-1],0.0001), popt[0], popt[1], popt[2], popt[3]),c='r',linewidth=2,label='y0='+"{:.2f}".format(popt[0])+'\n'+'A='+"{:.2f}".format(popt[1])+'\n'+'w='+"{:.6f}".format(popt[2])+'\n'+'x0='+"{:.2f}".format(popt[3])+'\n'+'$R^2$='+"{:.5f}".format(rs))
+						plt.plot(np.arange(x1[0],x1[-1],0.0001),func(np.arange(x1[0],x1[-1],0.0001), popt[0], popt[1], popt[2], popt[3],popt[4]),c='r',linewidth=2,label='y0='+"{:.2f}".format(popt[0])+'\n'+'A='+"{:.2f}".format(popt[1])+'\n'+'w='+"{:.6f}".format(popt[2])+'\n'+'x0='+"{:.2f}".format(popt[3])+'\n'+'$\mu$='+"{:.6f}".format(popt[4])+'\n'+'$R^2$='+"{:.5f}".format(rs))
 						plt.tight_layout()
 						plt.title(filename, fontsize=14)
 						plt.xlim(x0-0.2,x0+0.2)
