@@ -30,8 +30,7 @@ poper=np.zeros(len(l))
 key1=np.zeros(len(l))
 key2=np.zeros(len(l))
 data=np.zeros(2)
-tiks=550
-dt=10
+dt=1
 k=0
 
 
@@ -41,49 +40,44 @@ for j2 in range(len(key)):
 			if any(glob.iglob('*'+str(l[i])+'*'+nak[j]+'*00*-*'+str(key[j2])+'.asc'))==True:
 				filename=glob.glob('*'+str(l[i])+'*'+nak[j]+'*00*-*'+str(key[j2])+'.asc')[0]
 				k=k+1
-				lines = open(glob.glob('*'+str(l[i])+'*'+nak[j]+'*00*-*'+str(key[j2])+'.asc')[0]).readlines()
-				print(str(k)+': '+glob.glob('*'+str(l[i])+'*'+nak[j]+'*00*-*'+str(key[j2])+'.asc')[0])
+				lines = open(filename).readlines()
+				print(str(k)+': '+filename)
 				table = np.array([row.split(',') for row in lines])
 				x1 = np.float64(np.delete(table,1,1)).ravel()
 				y1 = np.float64(np.delete(table,0,1)).ravel()
+				rs=0
 				if max(y1)-53500>0:
 					try:
-						for j1 in range(len(x1)):
-							if y1[j1]==max(y1):
-								x0_guess=x1[j1]
-						tiks1=tiks
+						x0_guess=x1[np.argmax(y1)]
+						ticks=len(x1)//2-20
 						paral[i]=0
-						while paral[i]<=0:
+						while paral[i]<=0 or rs<0.98:
 							try:
-								print('A='+"{:.2f}".format(paral[i])+', retry, ticks='+str(tiks1))
-								x=x1[j1-tiks1:j1+tiks1]
-								y=y1[j1-tiks1:j1+tiks1]
+								print('A='+"{:.2f}".format(paral[i])+', retry, ticks='+str(ticks)+', rs='+str(rs))
+								x=x1[np.argmax(y1)-ticks:np.argmax(y1)+ticks]
+								y=y1[np.argmax(y1)-ticks:np.argmax(y1)+ticks]
 								A_guess = integrate.simps(y,x)
 								y0_guess = min(y)
-								x0_guess = x[0]
-								for j3 in range(len(x)):
-									if y[j3]==max(y):
-										x0_guess=x[j3]
+								x0_guess=x[np.argmax(y)]
 								w_guess=2*integrate.simps(y,x)/(np.pi*max(y))
 								pguess = [y0_guess, A_guess, w_guess, x0_guess]
 								popt, pcov = curve_fit(func, x, y, p0 = pguess)
 								y0, A, w, x0 = popt[0], popt[1], popt[2], popt[3]
 								paral[i]=popt[1]
-								tiks1=tiks1-dt
+								rs=1-(np.sum((y-func(x,popt[0],popt[1],popt[2],popt[3]))**2)/np.sum((y-np.mean(y))**2))
+								ticks=ticks-dt
 							except RuntimeError:
-								tiks1=tiks1-dt
+								ticks=ticks-dt
 								continue
-
-							break
-							if tiks1<10:
+							if ticks<10:
 								key1[i]=0
 								break
 						if paral[i]>0:							
 							key1[i]=1
-							print('A='+"{:.2f}".format(paral[i])+', ok')
+							print('A='+"{:.2f}".format(paral[i])+', ok'+', rs='+str(rs))
 						if paral[i]<0:							
 							key1[i]=0
-							print('A<0')
+							print('A='+"{:.2f}".format(paral[i])+', not ok'+', rs='+str(rs))
 					except RuntimeError:
 						key1[i]=0
 						print('RuntimeError')
@@ -96,7 +90,7 @@ for j2 in range(len(key)):
 					os.chdir('fitting')
 					fig = plt.figure()
 					plt.scatter(x,y,c='k',s=14,marker='o')
-					plt.plot(np.arange(x1[0],x1[-1],0.0001),func(np.arange(x1[0],x1[-1],0.0001), popt[0], popt[1], popt[2], popt[3]),c='r',linewidth=2,label='y0='+"{:.2f}".format(popt[0])+'\n'+'A='+"{:.2f}".format(popt[1])+'\n'+'w='+"{:.6f}".format(popt[2])+'\n'+'x0='+"{:.2f}".format(popt[3]))
+					plt.plot(np.arange(x1[0],x1[-1],0.0001),func(np.arange(x1[0],x1[-1],0.0001), popt[0], popt[1], popt[2], popt[3]),c='r',linewidth=2,label='y0='+"{:.2f}".format(popt[0])+'\n'+'A='+"{:.2f}".format(popt[1])+'\n'+'w='+"{:.6f}".format(popt[2])+'\n'+'x0='+"{:.2f}".format(popt[3])+'\n'+'$R^2$='+"{:.5f}".format(rs))
 					plt.tight_layout()
 					plt.title(filename, fontsize=14)
 					plt.xlim(x0-0.2,x0+0.2)
@@ -124,49 +118,45 @@ for j2 in range(len(key)):
 			if any(glob.iglob('*'+str(l[i])+'*'+nak[j]+'*90*-*'+str(key[j2])+'.asc'))==True:
 				filename=glob.glob('*'+str(l[i])+'*'+nak[j]+'*90*-*'+str(key[j2])+'.asc')[0]
 				k=k+1
-				lines = open(glob.glob('*'+str(l[i])+'*'+nak[j]+'*90*-*'+str(key[j2])+'.asc')[0]).readlines()
-				print(str(k)+': '+glob.glob('*'+str(l[i])+'*'+nak[j]+'*90*-*'+str(key[j2])+'.asc')[0])
+				lines = open(filename).readlines()
+				print(str(k)+': '+filename)
 				table = np.array([row.split(',') for row in lines])
 				x1 = np.float64(np.delete(table,1,1)).ravel()
 				y1 = np.float64(np.delete(table,0,1)).ravel()
+				rs=0
 				if max(y1)-53500>0:
 					try:
-						for j1 in range(len(x1)):
-							if y1[j1]==max(y1):
-								x0_guess=x1[j1]
-						tiks1=tiks
+						x0_guess=x1[np.argmax(y1)]
+						ticks=len(x1)//2-20
 						poper[i]=0
-						while poper[i]<=0:
+						while poper[i]<=0 or rs<0.98:
 							try:
-								print('A='+"{:.2f}".format(poper[i])+', retry, ticks='+str(tiks1))
-								x=x1[j1-tiks1:j1+tiks1]
-								y=y1[j1-tiks1:j1+tiks1]
+								print('A='+"{:.2f}".format(poper[i])+', retry, ticks='+str(ticks)+', rs='+str(rs))
+								x=x1[np.argmax(y1)-ticks:np.argmax(y1)+ticks]
+								y=y1[np.argmax(y1)-ticks:np.argmax(y1)+ticks]
 								A_guess = integrate.simps(y,x)
 								y0_guess = min(y)
-								x0_guess = x[0]
-								for j3 in range(len(x)):
-									if y[j3]==max(y):
-										x0_guess=x[j3]
+								x0_guess=x[np.argmax(y)]
 								w_guess=2*integrate.simps(y,x)/(np.pi*max(y))
 								pguess = [y0_guess, A_guess, w_guess, x0_guess]
 								popt, pcov = curve_fit(func, x, y, p0 = pguess)
 								y0, A, w, x0 = popt[0], popt[1], popt[2], popt[3]
 								poper[i]=popt[1]
-								tiks1=tiks1-dt
+								rs=1-(np.sum((y-func(x,popt[0],popt[1],popt[2],popt[3]))**2)/np.sum((y-np.mean(y))**2))
+								ticks=ticks-dt
 							except RuntimeError:
-								tiks1=tiks1-dt
+								ticks=ticks-dt
 								continue
-							break
-							if tiks1<10:
+							if ticks<10:
 								key2[i]=0
 								break
 						poper[i]=popt[1]
 						if poper[i]>0:							
 							key2[i]=1
-							print('A='+"{:.2f}".format(poper[i])+', ok')
+							print('A='+"{:.2f}".format(poper[i])+', ok'+', rs='+str(rs))
 						if poper[i]<0:							
 							key2[i]=0
-							print('A<0')
+							print('A='+"{:.2f}".format(poper[i])+', not ok'+', rs='+str(rs))
 					except RuntimeError:
 						key2[i]=0
 						print('RuntimeError')
@@ -179,7 +169,7 @@ for j2 in range(len(key)):
 					os.chdir('fitting')
 					fig = plt.figure()
 					plt.scatter(x,y,c='k',s=14,marker='o')
-					plt.plot(np.arange(x1[0],x1[-1],0.0001),func(np.arange(x1[0],x1[-1],0.0001), popt[0], popt[1], popt[2], popt[3]),c='r',linewidth=2,label='y0='+"{:.2f}".format(popt[0])+'\n'+'A='+"{:.2f}".format(popt[1])+'\n'+'w='+"{:.6f}".format(popt[2])+'\n'+'x0='+"{:.2f}".format(popt[3]))
+					plt.plot(np.arange(x1[0],x1[-1],0.0001),func(np.arange(x1[0],x1[-1],0.0001), popt[0], popt[1], popt[2], popt[3]),c='r',linewidth=2,label='y0='+"{:.2f}".format(popt[0])+'\n'+'A='+"{:.2f}".format(popt[1])+'\n'+'w='+"{:.6f}".format(popt[2])+'\n'+'x0='+"{:.2f}".format(popt[3])+'\n'+'$R^2$='+"{:.5f}".format(rs))
 					plt.tight_layout()
 					plt.title(filename, fontsize=14)
 					plt.xlim(x0-0.2,x0+0.2)
